@@ -22,6 +22,25 @@ html {
     overflow-y: scroll; /* Fix for scrollbar appearing/disappearing shift */
 }
 
+/* Custom Theme Scrollbar */
+::-webkit-scrollbar {
+    width: 14px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--text-navy);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--pink-primary);
+    border: 3px solid var(--text-navy);
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--yellow-star);
+}
+
 body {
     background-color: var(--bg-cream);
     background-image: 
@@ -174,12 +193,79 @@ header {
     height: 45px;
 }
 
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.desktop-auth-btns {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+
 @media (max-width: 900px) {
-    .nav-links {
+    .desktop-auth-btns {
         display: none;
     }
+    
+    .nav-links {
+        position: fixed;
+        top: 0;
+        right: -100%;
+        width: 100%;
+        height: 100vh;
+        background: var(--bg-cream);
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        gap: 2rem;
+        transition: right 0.4s cubic-bezier(0.77, 0, 0.175, 1);
+        z-index: 999;
+        padding: 4rem 2rem;
+    }
+
+    .nav-links.mobile-active {
+        right: 0;
+    }
+
     .mobile-menu-btn {
         display: block;
+        z-index: 1000;
+    }
+
+    .mobile-auth-wrapper {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+        margin-top: 2rem;
+        width: 100%;
+        max-width: 300px;
+        padding-top: 2rem;
+        border-top: 2px dashed var(--text-navy);
+    }
+
+    .mobile-auth-btns {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .mobile-profile-link {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        background: #fff;
+        padding: 1rem;
+        border-radius: 15px;
+        border: 3px solid var(--text-navy);
+        box-shadow: 5px 5px 0px var(--text-navy);
+        width: 100%;
+    }
+
+    .mobile-profile-link img {
+        width: 40px;
     }
 }
 
@@ -377,10 +463,10 @@ header {
 .newsletter-section { background: var(--pink-primary) !important; color: #fff; }
 
 .section-content {
-    max-width: 1200px;
+    max-width: 1500px; /* Increased for more expansive feel */
     margin: 0 auto;
-    padding: 2rem 5%;
-    background: transparent; /* Background now handled by section-block */
+    padding: 3rem 8%;
+    background: transparent;
     border: none;
     box-shadow: none;
     backdrop-filter: none;
@@ -398,7 +484,7 @@ header {
 .section-inner {
     display: flex;
     align-items: center;
-    gap: 4rem;
+    gap: 6rem; /* More breathing room */
 }
 
 .section-block:nth-child(even) .section-inner {
@@ -421,17 +507,88 @@ header {
     background: var(--bg-cream);
 }
 
-.section-visual-small img {
-    width: 100%;
-    height: auto;
-    display: block;
-}
+/* Global Responsiveness Tweak */
+@media (max-width: 768px) {
+    .hero h1 {
+        font-size: 4rem;
+    }
+    .hero .subtitle-large {
+        font-size: 1.2rem;
+    }
+    .section-block h2 {
+        font-size: 2.2rem;
+        text-align: center;
+    }
+    .section-inner {
+        flex-direction: column !important;
+        gap: 2rem;
+        text-align: center;
+    }
+    .section-visual-small {
+        max-width: 100%;
+    }
+    .trust-bar {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+    .profile-container {
+        grid-template-columns: 1fr;
+        padding: 100px 5%;
+    }
+    .prize-grid {
+        grid-template-columns: 1fr;
+    }
 
-footer {
-    text-align: center;
-    padding: 80px 5%;
-    border-top: 4px solid var(--text-navy);
-    background: var(--yellow-star);
+    /* Horizontal Winner Carousel for Mobile */
+    .winner-grid {
+        display: flex;
+        overflow-x: auto;
+        gap: 2rem;
+        padding: 2rem 5% 3rem;
+        scroll-snap-type: x mandatory;
+        -webkit-overflow-scrolling: touch;
+        grid-template-columns: none;
+    }
+
+    .winner-grid::-webkit-scrollbar {
+        display: none;
+    }
+
+    .winner-card {
+        flex: 0 0 320px;
+        scroll-snap-align: center;
+    }
+    
+    /* Removed redundant mobile gallery-grid override */
+
+    .polaroid-card {
+        flex: 0 0 280px; /* Fixed width for filmstrip */
+        scroll-snap-align: center;
+    }
+
+    /* Horizontal Whiteboard for Mobile */
+    .timeline-section {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        display: block; /* Ensure scroll works */
+    }
+
+    .whiteboard-container {
+        min-width: 850px; /* Force it to stay wide */
+        margin: 2rem 5% !important;
+    }
+
+    /* Newsletter Responsiveness */
+    .newsletter-input-group {
+        flex-direction: column;
+        width: 100%;
+        max-width: 100%;
+    }
+
+    .newsletter-section {
+        text-align: center;
+        padding: 4rem 5%;
+    }
 }
 
 /* School Whiteboard */
@@ -653,10 +810,40 @@ footer {
 
 /* Polaroid Gallery */
 .gallery-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    display: flex;
+    overflow-x: auto;
+    overflow-y: hidden;
     gap: 3rem;
-    padding: 2rem;
+    padding: 3rem 5% 5rem;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    width: 100%;
+}
+
+.gallery-grid::-webkit-scrollbar {
+    height: 10px;
+}
+
+.gallery-grid::-webkit-scrollbar-track {
+    background: var(--text-navy);
+    border-radius: 10px;
+}
+
+.gallery-grid::-webkit-scrollbar-thumb {
+    background: var(--pink-primary);
+    border: 2px solid var(--text-navy);
+    border-radius: 10px;
+}
+
+.polaroid-card {
+    flex: 0 0 320px; /* Fixed width for horizontal flow */
+    background: #fff;
+    padding: 1.5rem 1.5rem 4rem;
+    border: 1px solid #ddd;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    position: relative;
+    transition: all 0.3s ease;
+    scroll-snap-align: center;
 }
 
 .polaroid {
@@ -804,6 +991,81 @@ footer {
     margin-bottom: 1rem;
 }
 
+/* Hall of Fame */
+.winner-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 3rem;
+    margin-top: 3rem;
+}
+
+.winner-card {
+    background: #fff;
+    border: 4px solid var(--text-navy);
+    border-radius: 30px;
+    padding: 2.5rem;
+    position: relative;
+    box-shadow: 12px 12px 0px var(--blue-shadow);
+    transition: all 0.3s ease;
+    text-align: left;
+}
+
+.winner-card:hover {
+    transform: translateY(-10px);
+    box-shadow: 15px 15px 0px var(--yellow-star);
+}
+
+.winner-badge {
+    position: absolute;
+    top: -20px;
+    right: -20px;
+    background: var(--yellow-star);
+    border: 3px solid var(--text-navy);
+    padding: 0.5rem 1rem;
+    border-radius: 15px;
+    font-family: 'Fredoka One', cursive;
+    font-size: 0.9rem;
+    transform: rotate(15deg);
+    box-shadow: 4px 4px 0px var(--text-navy);
+    z-index: 5;
+}
+
+.winner-project-img {
+    width: 100%;
+    aspect-ratio: 16/9;
+    background: #f8f9fa;
+    border: 3px solid var(--text-navy);
+    border-radius: 20px;
+    margin-bottom: 1.5rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+}
+
+.winner-card h3 {
+    font-family: 'Fredoka One', cursive;
+    color: var(--text-navy);
+    margin-bottom: 0.5rem;
+    font-size: 1.5rem;
+}
+
+.winner-year {
+    color: var(--pink-primary);
+    font-weight: 700;
+    margin-bottom: 1rem;
+    display: block;
+}
+
+.view-project-btn {
+    display: inline-block;
+    margin-top: 1.5rem;
+    color: var(--text-navy);
+    text-decoration: underline;
+    font-weight: 700;
+    cursor: pointer;
+}
+
 /* Newsletter */
 .newsletter-section h2 {
     color: #fff !important;
@@ -908,11 +1170,12 @@ footer {
 
 /* Auth & Profile Screens */
 .auth-container {
-    min-height: 80vh;
+    width: 100%;
+    min-height: 100vh;
     display: flex;
     justify-content: center;
     align-items: center;
-    padding: 4rem 5%;
+    padding: 100px 5%;
     background: var(--bg-cream);
 }
 
@@ -950,12 +1213,14 @@ footer {
 }
 
 .profile-container {
-    max-width: 1000px;
-    margin: 0 auto;
-    padding: 100px 5%;
+    width: 100%;
+    margin: 0;
+    padding: 120px 8%;
     display: grid;
     grid-template-columns: 1fr 2fr;
-    gap: 4rem;
+    gap: 5rem;
+    background: var(--bg-cream);
+    min-height: 100vh;
 }
 
 .profile-sidebar {
@@ -1067,4 +1332,42 @@ footer {
 .logout-btn:hover {
     background: #cc0000;
     color: #fff;
+}
+
+/* Scroll to Top Button */
+.scroll-top-btn {
+    position: fixed;
+    bottom: 40px;
+    right: 40px;
+    width: 60px;
+    height: 60px;
+    background: var(--yellow-star);
+    border: 3px solid var(--text-navy);
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    box-shadow: 6px 6px 0px var(--text-navy);
+    z-index: 1000;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(20px);
+}
+
+.scroll-top-btn.visible {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+}
+
+.scroll-top-btn:hover {
+    transform: scale(1.1) rotate(10deg);
+    background: var(--pink-primary);
+}
+
+.scroll-top-btn img {
+    width: 30px;
+    height: 30px;
 }

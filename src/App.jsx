@@ -4,13 +4,6 @@ import './App.css';
 const sectionsData = [
   { 
     id: 1, 
-    type: 'mission',
-    title: "Who We Are", 
-    content: "Starlet 5.0 is a fun and safe hackathon for girls and gender minorities. We want to show you that technology is just a tool for your amazing imagination!",
-    image: "https://img.freepik.com/free-vector/hand-drawn-coding-concept-illustration_23-2148810394.jpg?t=st=1713876000~exp=1713879600~hmac=7a5"
-  },
-  { 
-    id: 1, 
     type: 'about',
     title: 'About Mind Empowered',
     content: 'Mind Empowered is a global movement dedicated to closing the gender gap in technology by providing safe spaces for girls to create and innovate.',
@@ -39,73 +32,34 @@ const sectionsData = [
   },
   { 
     id: 5, 
+    type: 'hall-of-fame',
+    title: "The Hall of Fame", 
+    content: "Meet the legends! Check out the top-winning projects from previous Starlet editions.",
+    image: "/prizes.png"
+  },
+  { 
+    id: 6, 
     type: 'prizes',
     title: "Epic Prizes", 
     content: "Win $10,000+ in prizes, tech swag, and exclusive mentorship sessions.",
     image: "/prizes.png"
   },
-  { 
-    id: 6, 
-    type: 'rules',
-    title: "Rules of the Galaxy", 
-    content: "Keep it fair, keep it fun, and keep it safe for everyone.",
-    image: "/rules.png"
-  },
-  { 
-    id: 7, 
-    type: 'mentors',
-    title: "Meet Your Mentors", 
-    content: "Get guided by professionals from Google, Meta, and Microsoft.",
-    image: "/mentors.png"
-  },
-  { 
-    id: 8, 
-    type: 'community',
-    title: "Make New Friends", 
-    content: "Join 500+ girls worldwide and build your dream team.",
-    image: "/community.png"
-  },
-  { 
-    id: 9, 
-    type: 'sponsors',
-    title: "Our Supporters", 
-    content: "The amazing companies making Starlet 5.0 possible.",
-    image: "/sponsors.png"
-  },
-  { 
-    id: 10, 
-    type: 'gallery',
-    title: "The Gallery", 
-    content: "Memories from our previous editions.",
-    image: "/gallery.png"
-  },
-  { 
-    id: 11, 
-    type: 'faq',
-    title: "Common Doubts", 
-    content: "Everything you need to know about Starlet 5.0.",
-    image: "/faq.png"
-  },
-  { 
-    id: 12, 
-    type: 'newsletter',
-    title: "Stay Updated", 
-    content: "Join our newsletter to never miss an update!",
-    image: "/newsletter.png"
-  },
-  { 
-    id: 13, 
-    type: 'contact',
-    title: "Get in Touch", 
-    content: "Have a specific question? We are here to help.",
-    image: "/contact.png"
-  }
+  { id: 7, type: 'rules', title: "Rules of the Galaxy", content: "Keep it fair, keep it fun, and keep it safe for everyone.", image: "/rules.png" },
+  { id: 8, type: 'mentors', title: "Meet Your Mentors", content: "Get guided by professionals from Google, Meta, and Microsoft.", image: "/mentors.png" },
+  { id: 9, type: 'community', title: "Make New Friends", content: "Join 500+ girls worldwide and build your dream team.", image: "/community.png" },
+  { id: 10, type: 'sponsors', title: "Our Supporters", content: "The amazing companies making Starlet 5.0 possible.", image: "/sponsors.png" },
+  { id: 11, type: 'gallery', title: "The Gallery", content: "Memories from our previous editions.", image: "/gallery.png" },
+  { id: 12, type: 'faq', title: "Common Doubts", content: "Everything you need to know about Starlet 5.0.", image: "/faq.png" },
+  { id: 13, type: 'newsletter', title: "Stay Updated", content: "Join our newsletter to never miss an update!", image: "/newsletter.png" },
+  { id: 14, type: 'contact', title: "Get in Touch", content: "Have a specific question? We are here to help.", image: "/contact.png" }
 ];
 
 function App() {
   const [smoothProgress, setSmoothProgress] = useState(0);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [activeView, setActiveView] = useState('landing'); // landing, login, signup, profile
+  const [showScrollTop, setShowScrollTop] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [user, setUser] = useState({ 
     name: 'Star Hacker', 
     email: 'hacker@starlet.com', 
@@ -147,7 +101,19 @@ function App() {
       cancelAnimationFrame(requestRef.current);
       observer.disconnect();
     };
+  }, [sectionsData, activeView]);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowScrollTop(window.scrollY > 500);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   // Floating Sparkle Positions
   const sparkleTop = 20 + (smoothProgress * 60);
@@ -161,36 +127,53 @@ function App() {
       <div className="sparkle" style={{ top: `${sparkleTop + 15}%`, left: `${sparkleLeft - 15}%`, animationDelay: '1s' }}>✦</div>
 
       <header>
-        <div className="logo-circle">
+        <div className="logo-circle" onClick={() => { setActiveView('landing'); setIsMenuOpen(false); }}>
           <img src="/public/brand/Logo.png" alt="Starlet Logo" onError={(e) => {e.target.src='/brand/Logo.png'}} />
         </div>
 
-        <nav className="nav-links">
-          <a href="#mission" className="nav-link">Mission</a>
-          <a href="#tracks" className="nav-link">Tracks</a>
-          <a href="#timeline" className="nav-link">Timeline</a>
-          <a href="#rules" className="nav-link">Rules</a>
-          <a href="#sponsors" className="nav-link">Sponsors</a>
+        <nav className={`nav-links ${isMenuOpen ? 'mobile-active' : ''}`}>
+          <a href="#mission" className="nav-link" onClick={() => setIsMenuOpen(false)}>Mission</a>
+          <a href="#tracks" className="nav-link" onClick={() => setIsMenuOpen(false)}>Tracks</a>
+          <a href="#timeline" className="nav-link" onClick={() => setIsMenuOpen(false)}>Timeline</a>
+          <a href="#hall-of-fame" className="nav-link" onClick={() => setIsMenuOpen(false)}>Hall of Fame</a>
+          <a href="#rules" className="nav-link" onClick={() => setIsMenuOpen(false)}>Rules</a>
+          <a href="#sponsors" className="nav-link" onClick={() => setIsMenuOpen(false)}>Sponsors</a>
+          
+          <div className="mobile-auth-wrapper">
+            {isLoggedIn ? (
+              <div className="mobile-profile-link" onClick={() => { setActiveView('profile'); setIsMenuOpen(false); }}>
+                <img src="/icons/user-profile.svg" alt="profile" />
+                <span>My Profile</span>
+              </div>
+            ) : (
+              <div className="mobile-auth-btns">
+                <div className="login-btn" onClick={() => { setActiveView('login'); setIsMenuOpen(false); }}>LOGIN</div>
+                <div className="join-btn" onClick={() => { setActiveView('signup'); setIsMenuOpen(false); }}>SIGN UP!</div>
+              </div>
+            )}
+          </div>
         </nav>
 
-        <div className="mobile-menu-btn">
-          <img src="/icons/hamburger.svg" alt="menu" />
-        </div>
+        <div className="header-actions">
+          <div className="desktop-auth-btns">
+            {isLoggedIn ? (
+              <img 
+                src="/icons/user-profile.svg" 
+                className="nav-profile-btn" 
+                alt="profile" 
+                onClick={() => setActiveView('profile')}
+              />
+            ) : (
+              <>
+                <div className="login-btn" onClick={() => setActiveView('login')}>LOGIN</div>
+                <div className="join-btn" onClick={() => setActiveView('signup')}>SIGN UP!</div>
+              </>
+            )}
+          </div>
 
-        <div className="auth-btns">
-          {isLoggedIn ? (
-            <img 
-              src="/icons/user-profile.svg" 
-              className="nav-profile-btn" 
-              alt="profile" 
-              onClick={() => setActiveView('profile')}
-            />
-          ) : (
-            <>
-              <div className="login-btn" onClick={() => setActiveView('login')}>LOGIN</div>
-              <div className="join-btn" onClick={() => setActiveView('signup')}>SIGN UP!</div>
-            </>
-          )}
+          <div className="mobile-menu-btn" onClick={() => setIsMenuOpen(!isMenuOpen)}>
+            <img src={isMenuOpen ? "/icons/close.svg" : "/icons/hamburger.svg"} alt="menu" />
+          </div>
         </div>
       </header>
 
@@ -317,6 +300,36 @@ function App() {
                         <div className="polaroid-caption">{caption}</div>
                       </div>
                     ))}
+                  </div>
+                </div>
+              ) : section.type === 'hall-of-fame' ? (
+                <div className="section-content">
+                  <h2 className="text-3d" style={{ fontSize: '2.5rem' }}>{section.title}</h2>
+                  <div className="winner-grid">
+                    <div className="winner-card">
+                      <div className="winner-badge">GOLD WINNER</div>
+                      <div className="winner-project-img">✨<span>Project Preview</span></div>
+                      <span className="winner-year">STARLET 4.0</span>
+                      <h3>Eco-Sticker Bot</h3>
+                      <p>An AI that identifies recyclable materials through doodles.</p>
+                      <div className="view-project-btn">VIEW CASE STUDY →</div>
+                    </div>
+                    <div className="winner-card">
+                      <div className="winner-badge">BEST UI/UX</div>
+                      <div className="winner-project-img">🎨<span>Project Preview</span></div>
+                      <span className="winner-year">STARLET 3.0</span>
+                      <h3>Dream Journal</h3>
+                      <p>A hand-drawn interactive journal for global student collaboration.</p>
+                      <div className="view-project-btn">VIEW CASE STUDY →</div>
+                    </div>
+                    <div className="winner-card">
+                      <div className="winner-badge">TECH FOR GOOD</div>
+                      <div className="winner-project-img">🌍<span>Project Preview</span></div>
+                      <span className="winner-year">STARLET 2.0</span>
+                      <h3>Safety Net</h3>
+                      <p>A community-driven safety map for solo women travelers.</p>
+                      <div className="view-project-btn">VIEW CASE STUDY →</div>
+                    </div>
                   </div>
                 </div>
               ) : section.type === 'prizes' ? (
@@ -505,6 +518,10 @@ function App() {
           </div>
         </div>
       ) : null}
+
+      <div className={`scroll-top-btn ${showScrollTop ? 'visible' : ''}`} onClick={scrollToTop}>
+        <img src="/icons/rocket.svg" alt="top" />
+      </div>
     </div>
   );
 }
