@@ -2,12 +2,13 @@ import React, { useEffect, useState, useRef } from 'react';
 import './App.css';
 
 const sectionsData = [
+
   {
-    id: 1,
-    type: 'about',
-    title: 'About Mind Empowered',
-    content: 'Mind Empowered is dedicated to nurturing creativity and technical excellence in the next generation of innovators. Through events like Starlet 5.0, we provide a platform for students to challenge themselves, learn new skills, and build meaningful solutions for the future.',
-    image: '/brand/Mind Empowered.gif'
+    id: 15,
+    type: 'what-is-starlet',
+    title: 'What is Starlet?',
+    content: "Starlet is the ultimate innovation marathon for women where ideas meet execution and strangers become teammates. Whether you're a seasoned coder or just stepping into the world of tech, this event is built for everyone — solo innovators, dynamic duos, and full-fledged teams!",
+    image: '/brand/Logo.png'
   },
   {
     id: 2,
@@ -100,6 +101,7 @@ function App() {
     }
   });
   const [isSoundEnabled, setIsSoundEnabled] = useState(true);
+  const [showAboutPopup, setShowAboutPopup] = useState(false);
 
   const playClickSound = () => {
     if (!isSoundEnabled) return;
@@ -417,7 +419,7 @@ function App() {
                     <div className="section-content">
                       <h2 className="text-3d" style={{ fontSize: '2.5rem' }}>{section.title}</h2>
                       <div className="sponsor-grid">
-                        <div className="sponsor-card main-organizer">
+                        <div className="sponsor-card main-organizer clickable" onClick={() => setShowAboutPopup(true)}>
                           <span className="badge-main">MAIN ORGANIZER</span>
                           <img src="/brand/Mind Empowered.gif" alt="Mind Empowered" />
                           <h3 className="text-3d" style={{ fontSize: '1.2rem' }}>MIND EMPOWERED</h3>
@@ -815,6 +817,30 @@ function App() {
       <div className={`scroll-top-btn ${showScrollTop ? 'visible' : ''}`} onClick={scrollToTop}>
         <img src="/icons/rocket.svg" alt="top" />
       </div>
+      {showAboutPopup && (
+        <div className="modal-overlay" onClick={() => setShowAboutPopup(false)}>
+          <div className="modal-content about-modal" onClick={e => e.stopPropagation()}>
+            <button className="modal-close" onClick={() => setShowAboutPopup(false)}>×</button>
+            <div className="modal-inner">
+              <div className="modal-visual">
+                <img src="/brand/Mind Empowered.gif" alt="Mind Empowered" />
+              </div>
+              <div className="modal-text">
+                <h2 className="text-3d">About Mind Empowered</h2>
+                <p>
+                  Mind Empowered (ME) is a charitable organization based in India. It is the brainchild of Maya Menon and her sister - two sisters who resonate positivity and happiness wherever they go.
+                </p>
+                <p>
+                  The sisters realized there was a strong need to eliminate the stigma associated with mental health from our society. Hence, the idea of an open forum to help the students came to life by forming "ME".
+                </p>
+                <div className="modal-footer-brand">
+                  A Mind Empowered Initiative
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

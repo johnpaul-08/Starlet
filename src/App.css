@@ -567,6 +567,10 @@ header.header-minimal {
     color: #fff;
 }
 
+.what-is-starlet-section {
+    background: #fff !important;
+}
+
 .section-content {
     max-width: 1500px;
     /* Increased for more expansive feel */
@@ -2470,4 +2474,132 @@ footer {
     .venue-header h1 {
         font-size: 3rem;
     }
+
+    .modal-inner {
+        flex-direction: column;
+    }
+    
+    .modal-visual {
+        padding: 2rem;
+        border-right: none;
+        border-bottom: 3px solid #eee;
+    }
+    
+    .modal-text {
+        padding: 2rem;
+    }
+
+    .modal-text h2 {
+        font-size: 2rem;
+    }
+}
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 51, 102, 0.85);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    padding: 2rem;
+    animation: fadeIn 0.3s ease;
+}
+
+.modal-content {
+    background: #fff;
+    width: 100%;
+    max-width: 900px;
+    border-radius: 30px;
+    border: 4px solid var(--text-navy);
+    box-shadow: 20px 20px 0px var(--yellow-star);
+    position: relative;
+    overflow: hidden;
+    animation: slideUp 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.modal-close {
+    position: absolute;
+    top: 1.5rem;
+    right: 1.5rem;
+    background: none;
+    border: none;
+    font-size: 2.5rem;
+    color: var(--text-navy);
+    cursor: pointer;
+    z-index: 10;
+    line-height: 1;
+}
+
+.modal-inner {
+    display: flex;
+    align-items: stretch;
+}
+
+.modal-visual {
+    flex: 1;
+    background: var(--bg-cream);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 3rem;
+    border-right: 3px solid #eee;
+}
+
+.modal-visual img {
+    width: 100%;
+    max-width: 300px;
+    border-radius: 20px;
+    box-shadow: 10px 10px 0px var(--blue-shadow);
+}
+
+.modal-text {
+    flex: 1.2;
+    padding: 4rem 3rem;
+}
+
+.modal-text h2 {
+    font-size: 2.5rem;
+    margin-bottom: 2rem;
+    color: var(--pink-primary);
+}
+
+.modal-text p {
+    font-size: 1.1rem;
+    line-height: 1.7;
+    margin-bottom: 1.5rem;
+    color: var(--text-navy);
+}
+
+.modal-footer-brand {
+    margin-top: 3rem;
+    font-family: 'Fredoka One', cursive;
+    color: var(--blue-shadow);
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.sponsor-card.clickable {
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.sponsor-card.clickable:hover {
+    transform: translateY(-10px) scale(1.02);
+    box-shadow: 15px 15px 0px var(--pink-primary);
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideUp {
+    from { transform: translateY(50px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
 }
