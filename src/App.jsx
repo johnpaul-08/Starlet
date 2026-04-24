@@ -88,10 +88,16 @@ function App() {
   const [user, setUser] = useState({
     name: 'Star Hacker',
     email: 'hacker@starlet.com',
-    team: 'Nebula Squad',
+    role: 'Full Stack Wizard',
+    team: null, // Test "team not found" state
     venue: 'San Francisco, CA (Main Hub)',
-    bio: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. ✨',
-    stack: ['React', 'CSS', 'Figma']
+    bio: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
+    stack: ['React', 'CSS', 'Figma'],
+    socials: {
+      github: '',
+      linkedin: '',
+      twitter: ''
+    }
   });
   const [isSoundEnabled, setIsSoundEnabled] = useState(true);
 
@@ -651,7 +657,7 @@ function App() {
               <div className="sound-toggle-large" onClick={() => setIsSoundEnabled(!isSoundEnabled)}>
                 <span>Volume Control</span>
                 <div className={`toggle-switch ${isSoundEnabled ? 'active' : ''}`}>
-                  {isSoundEnabled ? "🔊 ON" : "🔈 OFF"}
+                  {isSoundEnabled ? "AUDIO ON" : "AUDIO OFF"}
                 </div>
               </div>
               <button className="logout-btn" onClick={() => { setIsLoggedIn(false); setActiveView('landing'); }}>LOGOUT</button>
@@ -660,15 +666,28 @@ function App() {
           </div>
           <div className="profile-info">
             <div className="profile-field">
-              <label>Hacking Venue</label>
-              <div>{user.venue}</div>
-              <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>
-                📍 Lorem ipsum dolor sit amet, consectetur adipiscing elit.
-              </p>
+              <label>Hacking Role</label>
+              <input
+                type="text"
+                className="profile-input"
+                value={user.role}
+                onChange={(e) => setUser({ ...user, role: e.target.value })}
+                placeholder="e.g. Frontend, UI/UX, Backend..."
+              />
             </div>
             <div className="profile-field">
               <label>Email & Team</label>
-              <div>{user.email} | {user.team}</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <div>{user.email}</div>
+                <div style={{ color: 'var(--text-muted)' }}>|</div>
+                {user.team ? (
+                  <div className="team-badge">{user.team}</div>
+                ) : (
+                  <div className="no-team-cta" onClick={() => window.open('https://discord.gg/starlet', '_blank')}>
+                    TEAM NOT FOUND? FIND SQUAD →
+                  </div>
+                )}
+              </div>
             </div>
             <div className="profile-field">
               <label>My Tech Stack</label>
@@ -678,9 +697,38 @@ function App() {
               </div>
             </div>
             <div className="profile-field">
-              <label>Hackathon Points</label>
-              <div style={{ fontSize: '2rem' }}>1,250 🌟</div>
-              <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Lorem ipsum dolor sit amet!</p>
+              <label>Social Connectivity</label>
+              <div className="social-connect-grid">
+                <div className="social-connect-item">
+                  <img src="/icons/github.svg" alt="GitHub" />
+                  <input
+                    type="text"
+                    placeholder="GitHub Username"
+                    value={user.socials.github}
+                    onChange={(e) => setUser({ ...user, socials: { ...user.socials, github: e.target.value } })}
+                  />
+                </div>
+                <div className="social-connect-item">
+                  <img src="/icons/linkedin.svg" alt="LinkedIn" />
+                  <input
+                    type="text"
+                    placeholder="LinkedIn Profile"
+                    value={user.socials.linkedin}
+                    onChange={(e) => setUser({ ...user, socials: { ...user.socials, linkedin: e.target.value } })}
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="profile-field" style={{ borderBottom: 'none' }}>
+              <label>Support & Assistance</label>
+              <div className="support-cta-grid">
+                <div className="support-btn mentor" onClick={() => alert('Mentor request sent! Stay tuned.')}>
+                  REQUEST A MENTOR
+                </div>
+                <div className="support-btn issue" onClick={() => alert('Our team has been notified. We will reach out soon!')}>
+                  REPORT AN ISSUE
+                </div>
+              </div>
             </div>
           </div>
         </div>
