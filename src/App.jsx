@@ -18,10 +18,17 @@ const sectionsData = [
     image: "/brand/Logo.png"
   },
   {
+    id: 16,
+    type: 'theme',
+    title: "2025 Theme: Assistive Tech",
+    content: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.",
+    image: '/icons/laptop.svg'
+  },
+  {
     id: 3,
     type: 'tracks',
     title: "Pick Your Track",
-    content: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.",
+    content: "Choose a focus area within Assistive Tech: from Mobility Solutions and Visual/Auditory Aids to Neurodiversity Support and Inclusive Education. Your innovation can redefine independence.",
     image: "/brand/Logo.png"
   },
   {
@@ -54,6 +61,13 @@ const sectionsData = [
   { id: 13, type: 'newsletter', title: "Stay Updated", content: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.", image: "/newsletter.png" },
   { id: 14, type: 'contact', title: "Get in Touch", content: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.", image: "/contact.png" }
 ];
+
+const tracksData = Array.from({ length: 15 }, (_, i) => ({
+  id: i + 1,
+  title: `Problem Statement ${i + 1}`,
+  summary: "A brief overview of the challenge and its importance in Assistive Technology.",
+  details: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur."
+}));
 
 const faqsData = [
   { id: 1, q: "Lorem ipsum dolor sit amet?", a: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat." },
@@ -102,6 +116,7 @@ function App() {
   });
   const [isSoundEnabled, setIsSoundEnabled] = useState(true);
   const [showAboutPopup, setShowAboutPopup] = useState(false);
+  const [selectedTrack, setSelectedTrack] = useState(null);
 
   const playClickSound = () => {
     if (!isSoundEnabled) return;
@@ -122,7 +137,7 @@ function App() {
 
       oscillator.start();
       oscillator.stop(audioCtx.currentTime + 0.1);
-    } catch (e) {}
+    } catch (e) { }
   };
 
   const sectionRefs = useRef([]);
@@ -413,6 +428,22 @@ function App() {
                           <div className="warning-icon"><img src="/icons/warning.svg" className="card-icon" alt="warning" /></div>
                           <p><strong>LOREM IPSUM:</strong> Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
                         </div>
+                      </div>
+                    </div>
+                  ) : section.type === 'tracks' ? (
+                    <div className="section-content">
+                      <h2 className="text-3d" style={{ fontSize: '2.5rem' }}>{section.title}</h2>
+                      <p style={{ marginBottom: '2rem', maxWidth: '800px' }}>{section.content}</p>
+                      <div className="tracks-grid-interactive">
+                        {tracksData.map(track => (
+                          <div key={track.id} className="track-card-mini" onClick={() => setSelectedTrack(track)}>
+                            <div className="track-card-inner">
+                              <span className="track-number">#{track.id}</span>
+                              <h3>{track.title}</h3>
+                              <div className="view-details-tag">VIEW CHALLENGE →</div>
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     </div>
                   ) : section.type === 'sponsors' ? (
@@ -836,6 +867,39 @@ function App() {
                 <div className="modal-footer-brand">
                   A Mind Empowered Initiative
                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {selectedTrack && (
+        <div className="modal-overlay" onClick={() => setSelectedTrack(null)}>
+          <div className="modal-content track-modal" onClick={e => e.stopPropagation()}>
+            <button className="modal-close" onClick={() => setSelectedTrack(null)}>×</button>
+            <div className="track-modal-inner">
+              <div className="track-modal-header">
+                <span className="track-id-badge">CHALLENGE #{selectedTrack.id}</span>
+                <h2 className="text-3d">{selectedTrack.title}</h2>
+              </div>
+              <div className="track-modal-body">
+                <div className="track-description">
+                  <h3>The Challenge</h3>
+                  <p>{selectedTrack.details}</p>
+                </div>
+                <div className="track-meta">
+                  <div className="meta-item">
+                    <strong>Focus Area:</strong>
+                    <span>Assistive Technology</span>
+                  </div>
+                  <div className="meta-item">
+                    <strong>Category:</strong>
+                    <span>Software / Hardware</span>
+                  </div>
+                </div>
+              </div>
+              <div className="modal-footer-brand">
+                Starlet 5.0 Innovation Track
               </div>
             </div>
           </div>

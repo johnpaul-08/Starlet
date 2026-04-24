@@ -85,7 +85,8 @@ header.header-minimal {
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
     border-bottom: none;
-    position: absolute; /* Logo will now scroll with the content */
+    position: absolute;
+    /* Logo will now scroll with the content */
 }
 
 .nav-links {
@@ -159,22 +160,28 @@ header.header-minimal {
 
 .logo-circle {
     width: 65px;
-    /* Smaller Circle */
     height: 65px;
-    border: 3px solid var(--text-navy);
-    border-radius: 50%;
-    overflow: hidden;
-    /* Keep logo inside */
     background: #fff;
+    border-radius: 50%;
+    border: 3px solid var(--text-navy);
     display: flex;
     justify-content: center;
     align-items: center;
-    transition: transform 0.3s ease;
+    box-shadow: 4px 4px 0px var(--text-navy);
+    padding: 3px;
+    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     position: relative;
+    overflow: hidden;
 }
 
 .logo-circle:hover {
     transform: scale(1.1) rotate(5deg);
+}
+
+.logo-circle img {
+    width: 90%;
+    height: 90%;
+    object-fit: contain;
 }
 
 .mobile-menu-btn {
@@ -571,6 +578,20 @@ header.header-minimal {
     background: #fff !important;
 }
 
+.theme-section {
+    background: #f0f7ff !important;
+}
+
+.tracks-section {
+    background: #fff !important;
+}
+
+.gallery-section .section-content {
+    max-width: none !important;
+    padding: 3rem 5%;
+    width: 100%;
+}
+
 .section-content {
     max-width: 1500px;
     /* Increased for more expansive feel */
@@ -610,12 +631,27 @@ header.header-minimal {
 }
 
 .section-visual-small {
-    flex: 0.8;
-    max-width: 400px;
+    flex: 1.2;
+    /* Increased flex to give more space */
+    max-width: 550px;
+    /* Larger card size */
+    width: 100%;
     border: 3px solid var(--text-navy);
     border-radius: 20px;
     overflow: hidden;
     background: var(--bg-cream);
+    box-shadow: 10px 10px 0px var(--blue-shadow);
+    display: flex;
+    aspect-ratio: 16 / 9;
+    /* Professional widescreen look */
+}
+
+.section-visual-small img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    /* Fills the card completely */
+    display: block;
 }
 
 /* Global Responsiveness Tweak */
@@ -1545,6 +1581,8 @@ footer {
     box-shadow: 10px 10px 0px var(--blue-shadow);
 }
 
+
+
 .profile-avatar img {
     width: 120px;
     height: 120px;
@@ -2466,8 +2504,9 @@ footer {
     .venue-grid {
         grid-template-columns: 1fr;
     }
-    
-    .gallery-section-venue, .transport-section {
+
+    .gallery-section-venue,
+    .transport-section {
         grid-column: span 1;
     }
 
@@ -2478,13 +2517,13 @@ footer {
     .modal-inner {
         flex-direction: column;
     }
-    
+
     .modal-visual {
         padding: 2rem;
         border-right: none;
         border-bottom: 3px solid #eee;
     }
-    
+
     .modal-text {
         padding: 2rem;
     }
@@ -2493,6 +2532,7 @@ footer {
         font-size: 2rem;
     }
 }
+
 .modal-overlay {
     position: fixed;
     top: 0;
@@ -2594,12 +2634,134 @@ footer {
     box-shadow: 15px 15px 0px var(--pink-primary);
 }
 
+.tracks-grid-interactive {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.5rem;
+    margin-top: 1rem;
+}
+
+.track-card-mini {
+    background: #fff;
+    border: 3px solid var(--text-navy);
+    border-radius: 18px;
+    padding: 1.5rem;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    box-shadow: 6px 6px 0px var(--text-navy);
+    position: relative;
+    overflow: hidden;
+}
+
+.track-card-mini:hover {
+    transform: translate(-3px, -3px);
+    box-shadow: 10px 10px 0px var(--pink-primary);
+}
+
+.track-card-inner {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.track-number {
+    font-family: 'Fredoka One', cursive;
+    color: var(--blue-shadow);
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+}
+
+.track-card-mini h3 {
+    font-size: 1.2rem;
+    color: var(--text-navy);
+    margin-bottom: 1.5rem;
+    line-height: 1.3;
+}
+
+.view-details-tag {
+    margin-top: auto;
+    font-size: 0.8rem;
+    font-weight: 800;
+    color: var(--pink-primary);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* Track Modal Specifics */
+.track-modal {
+    max-width: 700px !important;
+}
+
+.track-modal-inner {
+    padding: 3rem;
+}
+
+.track-id-badge {
+    background: var(--yellow-star);
+    color: var(--text-navy);
+    padding: 0.3rem 0.8rem;
+    border-radius: 10px;
+    font-family: 'Fredoka One', cursive;
+    font-size: 0.8rem;
+    display: inline-block;
+    margin-bottom: 1rem;
+    border: 2px solid var(--text-navy);
+}
+
+.track-modal-header h2 {
+    font-size: 2.2rem;
+    margin-bottom: 2rem;
+}
+
+.track-modal-body h3 {
+    font-family: 'Fredoka One', cursive;
+    color: var(--blue-shadow);
+    margin-bottom: 1rem;
+}
+
+.track-meta {
+    margin-top: 2.5rem;
+    padding-top: 1.5rem;
+    border-top: 2px dashed #eee;
+    display: flex;
+    gap: 2rem;
+}
+
+.meta-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+
+.meta-item strong {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+.meta-item span {
+    font-weight: 700;
+    color: var(--text-navy);
+}
+
 @keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
 }
 
 @keyframes slideUp {
-    from { transform: translateY(50px); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
+    from {
+        transform: translateY(50px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
 }
