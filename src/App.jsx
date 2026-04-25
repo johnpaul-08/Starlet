@@ -694,28 +694,42 @@ function App() {
   const handleAddVenue = async (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
-    const imageFile = e.target.image.files[0];
+    const imageFiles = e.target.images.files;
     
-    let imageUrl = '';
-    if (imageFile) {
-      imageUrl = await handleFileUpload(imageFile, 'venues');
+    if (imageFiles.length < 4 || imageFiles.length > 6) {
+      alert(`Please select between 4 and 6 images (you selected ${imageFiles.length})`);
+      return;
     }
 
-    const updates = {
-      name: formData.get('name'),
-      address: formData.get('address'),
-      google_maps_url: formData.get('mapsUrl'),
-      description: formData.get('description'),
-      capacity: parseInt(formData.get('capacity')) || 0,
-      image_url: imageUrl
-    };
+    setLoading(true);
+    const uploadedUrls = [];
+    try {
+      for (let i = 0; i < imageFiles.length; i++) {
+        const url = await handleFileUpload(imageFiles[i], 'venues');
+        if (url) uploadedUrls.push(url);
+      }
 
-    const { error } = await supabase.from('venues').insert([updates]);
-    if (error) alert(error.message);
-    else {
-      alert('Venue added successfully!');
+      const updates = {
+        name: formData.get('name'),
+        address: formData.get('address'),
+        google_maps_url: formData.get('mapsUrl'),
+        description: formData.get('description'),
+        capacity: parseInt(formData.get('capacity')) || 0,
+        image_urls: uploadedUrls,
+        image_url: uploadedUrls[0] // Set first image as primary header
+      };
+
+      const { error } = await supabase.from('venues').insert([updates]);
+      if (error) throw error;
+      
+      alert('Venue added successfully with ' + uploadedUrls.length + ' images!');
       e.target.reset();
       fetchVenues();
+      logAction('Added Venue', { name: updates.name, images: uploadedUrls.length });
+    } catch (error) {
+      alert(error.message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -1926,8 +1940,8 @@ function App() {
                       <input name="capacity" type="number" placeholder="Max Capacity (e.g. 60)" required />
                       <textarea name="description" placeholder="Description / Accessibility Details" required></textarea>
                       <div className="input-group">
-                        <label>Venue Header Image</label>
-                        <input name="image" type="file" accept="image/*" required />
+                        <label>Venue Gallery (Upload 4-6 Photos)</label>
+                        <input name="images" type="file" accept="image/*" multiple required />
                       </div>
                       <button type="submit" className="join-btn" style={{ width: '100%' }}>ADD VENUE</button>
                     </form>
