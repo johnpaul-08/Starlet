@@ -164,7 +164,11 @@ function App() {
   });
   const [auditLogs, setAuditLogs] = useState([]);
   const [venues, setVenues] = useState([]);
+  const [mentors, setMentors] = useState([]);
   const [problemStatements, setProblemStatements] = useState([]);
+  const [selectedTrack, setSelectedTrack] = useState(null);
+  const [selectedMentor, setSelectedMentor] = useState(null);
+  const [mentorRequestModal, setMentorRequestModal] = useState(null);
 
   const galleryRef = useRef(null);
   const requestRef = useRef();
@@ -241,19 +245,23 @@ function App() {
       }
     });
 
-    // 3. Fetch venues, problem statements, and settings
+    // 3. Fetch venues, problem statements, settings, and mentors
     fetchVenues();
     fetchProblemStatements();
     fetchSettings();
+    fetchAllMentors();
 
-    // 4. Realtime listener for venues and settings
+    // 4. Realtime listener for venues, settings, and mentors
     const venueChannel = supabase
-      .channel('venue-updates')
+      .channel('db-updates')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'venues' }, () => {
         fetchVenues();
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'event_settings' }, () => {
         fetchSettings();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'mentors' }, () => {
+        fetchAllMentors();
       })
       .subscribe();
 
@@ -284,7 +292,6 @@ function App() {
           avatarUrl: data.avatar_url || '',
           teamId: data.team_id || null,
           teamName: data.team_name || '',
-          selectedTrack: data.selected_track || '',
           problemStatementId: data.problem_statement_id || null,
           socials: {
             github: data.github_url || '',
@@ -358,11 +365,8 @@ function App() {
   };
 
   const fetchAllMentors = async () => {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('user_role', 'mentor');
-    if (data) setAllMentors(data);
+    const { data } = await supabase.from('mentors').select('*').eq('is_active', true);
+    if (data) setMentors(data);
   };
 
   const fetchAllUsers = async () => {
@@ -649,6 +653,36 @@ function App() {
     else {
       alert('Attendee track updated!');
       fetchAllUsers();
+    }
+  };
+
+  const handleAddMentor = async (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const { error } = await supabase.from('mentors').insert([{
+      full_name: formData.get('name'),
+      role_title: formData.get('role'),
+      company: formData.get('company'),
+      bio: formData.get('bio'),
+      expertise: formData.get('expertise').split(',').map(s => s.trim())
+    }]);
+    
+    if (error) alert(error.message);
+    else {
+      alert('Mentor added to the grid!');
+      logAction('Added Mentor', { name: formData.get('name') });
+      fetchAllMentors();
+      e.target.reset();
+    }
+  };
+
+  const handleDeleteMentor = async (id, name) => {
+    if (!confirm(`Are you sure you want to remove ${name}?`)) return;
+    const { error } = await supabase.from('mentors').delete().eq('id', id);
+    if (error) alert(error.message);
+    else {
+      logAction('Deleted Mentor', { name });
+      fetchAllMentors();
     }
   };
 
@@ -1439,17 +1473,21 @@ function App() {
                     <div className="section-content">
                       <h2 className="text-3d" style={{ fontSize: '2.5rem' }}>{section.title}</h2>
                       <div className="mentor-grid">
-                        {mentorsData.map(mentor => (
-                          <div key={mentor.id} className="mentor-card" onClick={() => setSelectedMentor(mentor)}>
-                            <div className="mentor-photo-wrapper">
-                              <img src={mentor.image} alt="mentor" />
-                              <div className="mentor-hover-hint">VIEW PROFILE →</div>
+                        {mentors.length === 0 ? (
+                          <p style={{ color: '#fff', textAlign: 'center', gridColumn: '1 / -1' }}>Mentors are being onboarded. Check back soon!</p>
+                        ) : (
+                          mentors.map(mentor => (
+                            <div key={mentor.id} className="mentor-card" onClick={() => setSelectedMentor(mentor)}>
+                              <div className="mentor-photo-wrapper">
+                                <img src={mentor.avatar_url || "/icons/user-profile.svg"} alt="mentor" />
+                                <div className="mentor-hover-hint">VIEW PROFILE →</div>
+                              </div>
+                              <h3>{mentor.full_name}</h3>
+                              <p className="mentor-role">{mentor.role_title}</p>
+                              <p className="mentor-company">{mentor.company}</p>
                             </div>
-                            <h3>{mentor.name}</h3>
-                            <p className="mentor-role">{mentor.role}</p>
-                            <p className="mentor-company">{mentor.company}</p>
-                          </div>
-                        ))}
+                          ))
+                        )}
                       </div>
                     </div>
                   ) : (
@@ -1919,6 +1957,42 @@ function App() {
                       <input name="category" type="text" placeholder="Track Category (e.g. AI, Health)" required />
                       <textarea name="description" placeholder="Short description of the challenge..." required></textarea>
                       <button type="submit" className="join-btn" style={{ width: '100%' }}>ADD TO LIBRARY</button>
+                    </form>
+                  </div>
+                </div>
+              </div>
+
+              {/* MENTOR MANAGEMENT */}
+              <div className="admin-panel" style={{ marginBottom: '4rem' }}>
+                <h2 className="text-3d" style={{ fontSize: '2rem', marginBottom: '2rem' }}>Mentor Management</h2>
+                <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '2rem' }}>
+                  <div className="admin-card">
+                    <h3>Active Mentors</h3>
+                    <div className="admin-issues-list" style={{ marginTop: '1rem' }}>
+                      {mentors.length === 0 ? (
+                        <p>No mentors in the library.</p>
+                      ) : (
+                        mentors.map(m => (
+                          <div key={m.id} className="approval-card" style={{ marginBottom: '1rem' }}>
+                            <div className="user-meta">
+                              <strong>{m.full_name}</strong>
+                              <small style={{ display: 'block', color: 'var(--blue-shadow)' }}>{m.role_title} @ {m.company}</small>
+                            </div>
+                            <button className="btn-small delete" onClick={() => handleDeleteMentor(m.id, m.full_name)}>REMOVE</button>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                  <div className="admin-card">
+                    <h3>Add New Mentor</h3>
+                    <form className="auth-form" onSubmit={handleAddMentor} style={{ marginTop: '1rem' }}>
+                      <input name="name" type="text" placeholder="Full Name" required />
+                      <input name="role" type="text" placeholder="Title (e.g. UX Designer)" required />
+                      <input name="company" type="text" placeholder="Company" required />
+                      <input name="expertise" type="text" placeholder="Expertise (comma separated: React, AI)" required />
+                      <textarea name="bio" placeholder="Brief bio..." required></textarea>
+                      <button type="submit" className="join-btn" style={{ width: '100%' }}>ADD MENTOR</button>
                     </form>
                   </div>
                 </div>
@@ -2587,6 +2661,67 @@ function App() {
                 Starlet 5.0 Innovation Track
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {selectedMentor && (
+        <div className="modal-overlay" onClick={() => setSelectedMentor(null)}>
+          <div className="modal-content mentor-modal" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2 className="text-3d">{selectedMentor.full_name}</h2>
+              <button className="modal-close" onClick={() => setSelectedMentor(null)}>×</button>
+            </div>
+            <div className="mentor-modal-content">
+              <div className="mentor-modal-side">
+                <img src={selectedMentor.avatar_url || "/icons/user-profile.svg"} alt="mentor" />
+                <h3>{selectedMentor.role_title}</h3>
+                <p>{selectedMentor.company}</p>
+                <div className="mentor-tags">
+                  {(selectedMentor.expertise || []).map(tag => <span key={tag} className="tech-tag">{tag}</span>)}
+                </div>
+              </div>
+              <div className="mentor-modal-main">
+                <h4>About</h4>
+                <p>{selectedMentor.bio}</p>
+                {user.role === 'attendee' && (
+                  <button className="join-btn" style={{ marginTop: '2rem', width: '100%' }} onClick={() => { setMentorRequestModal(selectedMentor); setSelectedMentor(null); }}>
+                    REQUEST HELP FROM {selectedMentor.full_name.split(' ')[0]}
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {mentorRequestModal && (
+        <div className="modal-overlay" onClick={() => setMentorRequestModal(null)}>
+          <div className="modal-content" style={{ maxWidth: '500px' }} onClick={e => e.stopPropagation()}>
+            <h2 className="text-3d">Request Help</h2>
+            <p>Send a message to <strong>{mentorRequestModal.full_name}</strong>. They will be notified immediately.</p>
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              const msg = e.target.message.value;
+              const { error } = await supabase.from('mentor_requests').insert([{
+                attendee_id: session.user.id,
+                mentor_id: mentorRequestModal.id,
+                message: msg
+              }]);
+              if (error) alert(error.message);
+              else {
+                alert('Request sent!');
+                setMentorRequestModal(null);
+              }
+            }}>
+              <textarea 
+                name="message" 
+                placeholder="What do you need help with? (e.g. Debugging React, UI Feedback)"
+                required
+                style={{ width: '100%', minHeight: '120px', padding: '1rem', borderRadius: '12px', marginTop: '1rem' }}
+              ></textarea>
+              <button type="submit" className="join-btn" style={{ width: '100%', marginTop: '1rem' }}>SEND REQUEST</button>
+            </form>
           </div>
         </div>
       )}
