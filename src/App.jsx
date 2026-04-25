@@ -125,7 +125,6 @@ function App() {
   });
   const [isSoundEnabled, setIsSoundEnabled] = useState(true);
   const [showAboutPopup, setShowAboutPopup] = useState(false);
-  const [selectedTrack, setSelectedTrack] = useState(null);
 
   const playClickSound = () => {
     if (!isSoundEnabled) return;
