@@ -442,14 +442,43 @@ function App() {
   };
 
   const handleApproveMentor = async (mentorId) => {
+    // 1. Get the profile data first
+    const { data: profile } = await supabase.from('profiles').select('*').eq('id', mentorId).single();
+    if (!profile) return;
+
+    // 2. Check if already in mentors table to avoid duplicates
+    const { data: existing } = await supabase.from('mentors').select('id').eq('profile_id', mentorId).single();
+    
+    if (!existing) {
+      // 3. Promote to mentors table
+      const { error: promoError } = await supabase.from('mentors').insert([{
+        profile_id: mentorId,
+        full_name: profile.full_name,
+        role_title: profile.role_title || 'Expert',
+        company: profile.company || 'Independent',
+        bio: profile.bio || '',
+        expertise: profile.stack || [],
+        avatar_url: profile.avatar_url,
+        is_active: true
+      }]);
+      if (promoError) {
+        alert("Promotion failed: " + promoError.message);
+        return;
+      }
+    }
+
+    // 4. Mark as approved in profiles
     const { error } = await supabase
       .from('profiles')
       .update({ is_approved: true })
       .eq('id', mentorId);
+
     if (error) alert(error.message);
     else {
-      alert('Mentor approved!');
+      alert('Mentor approved and added to the grid!');
       fetchAllMentors();
+      fetchAllUsers(); // Refresh the directory
+      logAction('Approved Mentor', { name: profile.full_name });
     }
   };
 
