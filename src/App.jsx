@@ -17,14 +17,14 @@ const sectionsData = [
     id: 2,
     type: 'mission',
     title: "Our Mission",
-    content: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.",
+    content: "A safe place for girls to connect, code, co-create and cultivate confidence",
     image: "/brand/Logo.png"
   },
   {
     id: 16,
     type: 'theme',
-    title: "2025 Theme: Assistive Tech",
-    content: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.",
+    title: "Starlet 5.0 Theme",
+    content: "Collaboration over competition to build technology that empowers people with disabilities, improves accessibility, and creates a more inclusive world",
     image: '/icons/laptop.svg'
   },
   {
@@ -38,58 +38,57 @@ const sectionsData = [
     id: 4,
     type: 'timeline',
     title: "The Roadmap",
-    content: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.",
+    content: "11th July 2026, Saturday 9:00am - 5:00pm and 12th July 2026, Sunday 9:00am - 5:00pm",
     image: "/brand/Logo.png"
   },
   {
     id: 5,
     type: 'hall-of-fame',
     title: "The Hall of Fame",
-    content: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.",
+    content: "Celebrating the brilliant minds and groundbreaking solutions from our previous editions.",
     image: "/icons/trophy.svg"
   },
   {
     id: 6,
     type: 'prizes',
     title: "Epic Prizes",
-    content: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.",
+    content: "A total prize pool of over ₹40,000 awaits the most innovative solutions!",
     image: "/icons/trophy.svg"
   },
-  { id: 7, type: 'rules', title: "Rules of the Galaxy", content: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.", image: "/icons/warning.svg" },
-  { id: 8, type: 'mentors', title: "Meet Your Mentors", content: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.", image: "/icons/user-profile.svg" },
-  { id: 9, type: 'community', title: "Make New Friends", content: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.", image: "/icons/users.svg" },
-  { id: 10, type: 'sponsors', title: "Our Supporters", content: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.", image: "/brand/Logo.png" },
-  { id: 11, type: 'gallery', title: "The Gallery", content: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.", image: "/brand/Logo.png" },
-  { id: 12, type: 'faq', title: "Common Doubts", content: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.", image: "/icons/warning.svg" },
-  { id: 13, type: 'newsletter', title: "Stay Updated", content: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.", image: "/icons/rocket.svg" },
-  { id: 14, type: 'contact', title: "Get in Touch", content: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.", image: "/icons/location.svg" }
+  { id: 7, type: 'rules', title: "Rules of the Galaxy", content: "Fair play and collaboration are the heart of Starlet.", image: "/icons/warning.svg" },
+  { id: 8, type: 'mentors', title: "Meet Your Mentors", content: "Industry experts ready to guide your journey.", image: "/icons/user-profile.svg" },
+  { id: 9, type: 'community', title: "Make New Friends", content: "Connect with like-minded innovators.", image: "/icons/users.svg" },
+  { id: 10, type: 'sponsors', title: "Our Supporters", content: "The organizations making this impact possible.", image: "/brand/Logo.png" },
+  { id: 11, type: 'gallery', title: "The Gallery", content: "Captured moments of innovation and fun.", image: "/brand/Logo.png" },
+  { id: 12, type: 'faq', title: "Common Doubts", content: "Answers to frequently asked questions.", image: "/icons/warning.svg" },
+  { id: 13, type: 'newsletter', title: "Stay Updated", content: "Join our community to never miss an update.", image: "/icons/rocket.svg" },
+  { id: 14, type: 'contact', title: "Get in Touch", content: "Reach out for support or inquiries.", image: "/icons/location.svg" }
 ];
 
 const tracksData = Array.from({ length: 15 }, (_, i) => ({
-  id: i + 1,
-  title: `Problem Statement ${i + 1}`,
-  summary: "A brief overview of the challenge and its importance in Assistive Technology.",
-  details: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur."
+  id: i + i,
+  title: `Challenge #${i + 1}`,
+  summary: "A brief overview of the challenge and its importance in building inclusive technology.",
+  details: "Dive into this challenge and use your coding skills to create a solution that makes a real-world impact. Collaboration and creativity are key!"
 }));
 
 const faqsData = [
-  { id: 1, q: "Lorem ipsum dolor sit amet?", a: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat." },
-  { id: 2, q: "Lorem ipsum dolor sit amet?", a: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua." },
-  { id: 3, q: "Lorem ipsum dolor sit amet?", a: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua." },
-  { id: 4, q: "Lorem ipsum dolor sit amet?", a: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua." },
-  { id: 5, q: "Lorem ipsum dolor sit amet?", a: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua." },
-  { id: 6, q: "Lorem ipsum dolor sit amet?", a: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua." },
-  { id: 7, q: "Lorem ipsum dolor sit amet?", a: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua." },
-  { id: 8, q: "Lorem ipsum dolor sit amet?", a: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua." },
-  { id: 9, q: "Lorem ipsum dolor sit amet?", a: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua." }
+  { id: 1, q: "What is Starlet 5.0?", a: "Starlet 5.0 is a high-impact innovation hackathon dedicated to building technology that empowers people with disabilities and improves accessibility across the world." },
+  { id: 2, q: "Who can participate?", a: "The event is open to all women and non-binary students and innovators. Whether you're a beginner or a pro, you're welcome!" },
+  { id: 3, q: "Do I need a team to register?", a: "No! You can register as a solo participant or with a team of up to 4. We'll have a team-matching session at the start of Day 1." },
+  { id: 4, q: "Where will the event be held?", a: "We have two venues: the Main Venue at Adi Shankara Institute (Kalady) and a second location at Aikyam Space (Matancherry)." },
+  { id: 5, q: "Is there any registration fee?", a: "Absolutely not! Starlet 5.0 is a free event aimed at fostering innovation and community." },
+  { id: 6, q: "What are the prizes?", a: "We have a total prize pool of over ₹40,000, including awards for the top 3 teams and a special 'Best Innovation' prize." },
+  { id: 7, q: "What should I bring with me?", a: "Please bring your own laptop and charger. We'll provide the internet, food, mentorship, and a great environment!" },
+  { id: 8, q: "Will there be mentorship available?", a: "Yes! Industry experts and tech mentors will be available throughout the event to guide you and your team." }
 ];
 
-const mentorsData = Array.from({ length: 12 }, (_, i) => ({
+const mentorsData = Array.from({ length: 6 }, (_, i) => ({
   id: i + 1,
-  name: `Mentor Lorem Ipsum ${i + 1}`,
-  role: "Lead Lorem Expert",
-  company: "Ipsum Global",
-  bio: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
+  name: `Mentor ${i + 1}`,
+  role: "Tech Expert",
+  company: "Industry Leader",
+  bio: "Experienced professional dedicated to guiding the next generation of innovators.",
   image: "/icons/user-profile.svg"
 }));
 
@@ -140,6 +139,7 @@ function App() {
   });
   const [isSoundEnabled, setIsSoundEnabled] = useState(true);
   const [showAboutPopup, setShowAboutPopup] = useState(false);
+  const [showRegPopup, setShowRegPopup] = useState(false);
 
   const playClickSound = () => {
     if (!isSoundEnabled) return;
@@ -1318,6 +1318,35 @@ function App() {
         </div>
       )}
 
+      {/* Registration Popup */}
+      {showRegPopup && (
+        <div className="modal-overlay" onClick={() => setShowRegPopup(false)}>
+          <div className="registration-modal" onClick={e => e.stopPropagation()}>
+            <div className="close-modal" onClick={() => setShowRegPopup(false)}>
+              <img src="/icons/close.svg" alt="close" />
+            </div>
+            <div className="registration-modal-content">
+              <div className="registration-modal-header" style={{ padding: '1rem', borderBottom: '3px solid var(--text-navy)', background: 'var(--yellow-star)' }}>
+                <h2 className="text-3d" style={{ fontSize: '1.2rem', margin: 0, textAlign: 'center' }}>Registration Form</h2>
+              </div>
+              <div className="form-iframe-container" style={{ flex: 1, overflowY: 'auto', background: 'var(--bg-cream)' }}>
+                <iframe 
+                  src="https://docs.google.com/forms/d/e/1FAIpQLScpTSmn2W3htUW6o2oy7Qnb1g5JGGGdVeV1E950b0lpJHTaaw/viewform?embedded=true" 
+                  width="100%" 
+                  height="1600" 
+                  frameBorder="0" 
+                  marginHeight="0" 
+                  marginWidth="0"
+                  title="Starlet 5.0 Registration Form"
+                >
+                  Loading…
+                </iframe>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showSplash && (
         <div className={`splash-screen ${fadeOut ? 'fade-out' : ''}`}>
           <div className="splash-content">
@@ -1371,7 +1400,7 @@ function App() {
                 ) : (
                   <div className="mobile-auth-btns">
                     <div className="login-btn" onClick={() => { setActiveView('login'); setIsMenuOpen(false); }}>LOGIN</div>
-                    <div className="join-btn" onClick={() => { setActiveView('signup'); setIsMenuOpen(false); }}>SIGN UP!</div>
+                    <div className="join-btn" onClick={() => { setShowRegPopup(true); setIsMenuOpen(false); }}>REGISTER</div>
                   </div>
                 )}
               </div>
@@ -1399,7 +1428,7 @@ function App() {
                 ) : (
                   <>
                     <div className="login-btn" onClick={() => setActiveView('login')}>LOGIN</div>
-                    <div className="join-btn" onClick={() => setActiveView('signup')}>SIGN UP!</div>
+                    <div className="join-btn" onClick={() => setShowRegPopup(true)}>REGISTER</div>
                   </>
                 )}
               </div>
@@ -1421,11 +1450,11 @@ function App() {
               </div>
               <h1 className="text-3d">STARLET 5.0</h1>
               <div className="subtitle-large">
-                Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+                A place where your ideas make you a star
               </div>
 
               <div className="hero-ctas">
-                <button className="join-btn" onClick={() => setActiveView('signup')}>REGISTER NOW</button>
+                <button className="join-btn" onClick={() => setShowRegPopup(true)}>REGISTER NOW</button>
                 <a href="#what-is-starlet" className="btn-secondary">LEARN MORE</a>
               </div>
 
@@ -1455,24 +1484,12 @@ function App() {
                       <h3 className="whiteboard-title handwritten">Starlet 5.0 Timeline</h3>
                       <div className="handwritten">
                         <div className="timeline-event">
-                          <span className="timeline-date">May 15th</span>
-                          <span className="timeline-desc">Lorem ipsum dolor sit amet, consectetur. <img src="/icons/rocket.svg" className="inline-icon" alt="rocket" /></span>
+                          <span className="timeline-date">July 11th, Sat</span>
+                          <span className="timeline-desc">Day 1: 9:00am - 5:00pm - Kickoff, Ideation & Coding <img src="/icons/rocket.svg" className="inline-icon" alt="rocket" /></span>
                         </div>
                         <div className="timeline-event">
-                          <span className="timeline-date">June 1st</span>
-                          <span className="timeline-desc">Lorem ipsum dolor sit amet, consectetur. <img src="/icons/users.svg" className="inline-icon" alt="users" /></span>
-                        </div>
-                        <div className="timeline-event">
-                          <span className="timeline-date">June 10th</span>
-                          <span className="timeline-desc">Lorem ipsum dolor sit amet, consectetur. <img src="/icons/calendar.svg" className="inline-icon" alt="calendar" /></span>
-                        </div>
-                        <div className="timeline-event">
-                          <span className="timeline-date">June 15th</span>
-                          <span className="timeline-desc">Lorem ipsum dolor sit amet, consectetur.</span>
-                        </div>
-                        <div className="timeline-event">
-                          <span className="timeline-date">June 20th</span>
-                          <span className="timeline-desc">Lorem ipsum dolor sit amet, consectetur. <img src="/icons/trophy.svg" className="inline-icon" alt="trophy" /></span>
+                          <span className="timeline-date">July 12th, Sun</span>
+                          <span className="timeline-desc">Day 2: 9:00am - 5:00pm - Finalizing, Pitches & Awards <img src="/icons/trophy.svg" className="inline-icon" alt="trophy" /></span>
                         </div>
                       </div>
                     </div>
@@ -1485,19 +1502,19 @@ function App() {
                         <div className="rules-grid">
                           <div className="warning-item" style={{ "--r": -1 }}>
                             <div className="warning-icon"><img src="/icons/warning.svg" className="card-icon" alt="warning" /></div>
-                            <p><strong>LOREM IPSUM:</strong> Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
+                            <p><strong>TEAM SIZE:</strong> Teams can consist of 1 to 4 members. Solo participants are welcome!</p>
                           </div>
                           <div className="warning-item" style={{ "--r": 1.5 }}>
                             <div className="warning-icon"><img src="/icons/users.svg" className="card-icon" alt="users" /></div>
-                            <p><strong>LOREM IPSUM:</strong> Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
+                            <p><strong>ORIGINALITY:</strong> All projects must be started from scratch during the hackathon hours.</p>
                           </div>
                           <div className="warning-item" style={{ "--r": -0.8 }}>
                             <div className="warning-icon"><img src="/icons/calendar.svg" className="card-icon" alt="calendar" /></div>
-                            <p><strong>LOREM IPSUM:</strong> Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
+                            <p><strong>ATTENDANCE:</strong> Participants must be present during both days for the full duration.</p>
                           </div>
                           <div className="warning-item" style={{ "--r": 1.2 }}>
                             <div className="warning-icon"><img src="/icons/warning.svg" className="card-icon" alt="warning" /></div>
-                            <p><strong>LOREM IPSUM:</strong> Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
+                            <p><strong>CONDUCT:</strong> Maintain a respectful and collaborative environment for all innovators.</p>
                           </div>
                         </div>
                       </div>
@@ -1585,26 +1602,26 @@ function App() {
                       <div className="winner-grid">
                         <div className="winner-card">
                           <div className="winner-badge">GOLD WINNER</div>
-                          <div className="winner-project-img"><span>Project Preview</span></div>
+                          <div className="winner-project-img"><span>Inclusive Education App</span></div>
                           <span className="winner-year">STARLET 4.0</span>
-                          <h3>Lorem Ipsum Project</h3>
-                          <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+                          <h3>VisionAid</h3>
+                          <p>An AI-powered application designed to help visually impaired students navigate educational materials more effectively.</p>
                           <div className="view-project-btn">VIEW CASE STUDY →</div>
                         </div>
                         <div className="winner-card">
-                          <div className="winner-badge">LOREM IPSUM</div>
-                          <div className="winner-project-img"><span>Project Preview</span></div>
+                          <div className="winner-badge">INNOVATION AWARD</div>
+                          <div className="winner-project-img"><span>Mobility Solution</span></div>
                           <span className="winner-year">STARLET 3.0</span>
-                          <h3>Lorem Ipsum Project</h3>
-                          <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+                          <h3>SwiftMove</h3>
+                          <p>A smart wheelchair attachment that uses ultrasonic sensors to detect obstacles and provide haptic feedback.</p>
                           <div className="view-project-btn">VIEW CASE STUDY →</div>
                         </div>
                         <div className="winner-card">
-                          <div className="winner-badge">LOREM IPSUM</div>
-                          <div className="winner-project-img"><span>Project Preview</span></div>
+                          <div className="winner-badge">IMPACT AWARD</div>
+                          <div className="winner-project-img"><span>Accessibility Tool</span></div>
                           <span className="winner-year">STARLET 2.0</span>
-                          <h3>Lorem Ipsum Project</h3>
-                          <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+                          <h3>SignBridge</h3>
+                          <p>Real-time sign language to speech translation tool to facilitate better communication in public spaces.</p>
                           <div className="view-project-btn">VIEW CASE STUDY →</div>
                         </div>
                       </div>
@@ -1615,18 +1632,23 @@ function App() {
                       <div className="prize-grid">
                         <div className="prize-card">
                           <div className="prize-icon"><img src="/icons/trophy.svg" style={{ width: '80px' }} alt="trophy" /></div>
-                          <h3 className="text-3d" style={{ fontSize: '1.5rem' }}>1st Place</h3>
-                          <p>Lorem ipsum dolor sit amet</p>
+                          <h3 className="text-3d" style={{ fontSize: '1.5rem' }}>1st Prize</h3>
+                          <p>₹15,000</p>
                         </div>
                         <div className="prize-card">
                           <div className="prize-icon"><img src="/icons/trophy.svg" style={{ width: '70px', opacity: 0.7 }} alt="trophy" /></div>
-                          <h3 className="text-3d" style={{ fontSize: '1.5rem' }}>2nd Place</h3>
-                          <p>Lorem ipsum dolor sit amet</p>
+                          <h3 className="text-3d" style={{ fontSize: '1.5rem' }}>2nd Prize</h3>
+                          <p>₹10,000</p>
                         </div>
                         <div className="prize-card">
                           <div className="prize-icon"><img src="/icons/trophy.svg" style={{ width: '60px', opacity: 0.5 }} alt="trophy" /></div>
-                          <h3 className="text-3d" style={{ fontSize: '1.5rem' }}>3rd Place</h3>
-                          <p>Lorem ipsum dolor sit amet</p>
+                          <h3 className="text-3d" style={{ fontSize: '1.5rem' }}>3rd Prize</h3>
+                          <p>₹7,500</p>
+                        </div>
+                        <div className="prize-card">
+                          <div className="prize-icon"><img src="/icons/laptop.svg" style={{ width: '60px', opacity: 0.8 }} alt="innovation" /></div>
+                          <h3 className="text-3d" style={{ fontSize: '1.5rem' }}>Best Innovation</h3>
+                          <p>₹7,500</p>
                         </div>
                       </div>
                     </div>
