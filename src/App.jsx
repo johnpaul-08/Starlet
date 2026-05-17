@@ -11,21 +11,21 @@ const sectionsData = [
     type: 'what-is-starlet',
     title: 'What is Starlet?',
     content: "Starlet is the ultimate innovation marathon for women where ideas meet execution and strangers become teammates. Whether you're a seasoned coder or just stepping into the world of tech, this event is built for everyone — solo innovators, dynamic duos, and full-fledged teams!",
-    image: '/brand/Starlet.gif'
+    image: '/brand/Starlet.mp4'
   },
   {
     id: 2,
     type: 'mission',
     title: "Our Mission",
     content: "A safe place for girls to connect, code, co-create and cultivate confidence",
-    image: "/brand/Logo.png"
+    image: "/svg/1.svg"
   },
   {
     id: 16,
     type: 'theme',
     title: "Starlet 5.0 Theme",
     content: "Collaboration over competition to build technology that empowers people with disabilities, improves accessibility, and creates a more inclusive world",
-    image: '/icons/laptop.svg'
+    image: "/svg/3.svg"
   },
   {
     id: 3,
@@ -41,13 +41,7 @@ const sectionsData = [
     content: "11th July 2026, Saturday 9:00am - 5:00pm and 12th July 2026, Sunday 9:00am - 5:00pm",
     image: "/brand/Logo.png"
   },
-  {
-    id: 5,
-    type: 'hall-of-fame',
-    title: "The Hall of Fame",
-    content: "Celebrating the brilliant minds and groundbreaking solutions from our previous editions.",
-    image: "/icons/trophy.svg"
-  },
+
   {
     id: 6,
     type: 'prizes',
@@ -57,7 +51,7 @@ const sectionsData = [
   },
   { id: 7, type: 'rules', title: "Rules of the Galaxy", content: "Fair play and collaboration are the heart of Starlet.", image: "/icons/warning.svg" },
   { id: 8, type: 'mentors', title: "Meet Your Mentors", content: "Industry experts ready to guide your journey.", image: "/icons/user-profile.svg" },
-  { id: 9, type: 'community', title: "Make New Friends", content: "Connect with like-minded innovators.", image: "/icons/users.svg" },
+  { id: 9, type: 'community', title: "Make New Friends", content: "Connect with like-minded innovators.", image: "/svg/2.svg" },
   { id: 10, type: 'sponsors', title: "Our Supporters", content: "The organizations making this impact possible.", image: "/brand/Logo.png" },
   { id: 11, type: 'gallery', title: "The Gallery", content: "Captured moments of innovation and fun.", image: "/brand/Logo.png" },
   { id: 12, type: 'faq', title: "Common Doubts", content: "Answers to frequently asked questions.", image: "/icons/warning.svg" },
@@ -75,9 +69,9 @@ const tracksData = Array.from({ length: 15 }, (_, i) => ({
 const faqsData = [
   { id: 1, q: "What is Starlet 5.0?", a: "Starlet 5.0 is a high-impact innovation hackathon dedicated to building technology that empowers people with disabilities and improves accessibility across the world." },
   { id: 2, q: "Who can participate?", a: "The event is open to all women and non-binary students and innovators. Whether you're a beginner or a pro, you're welcome!" },
-  { id: 3, q: "Do I need a team to register?", a: "No! You can register as a solo participant or with a team of up to 4. We'll have a team-matching session at the start of Day 1." },
+  { id: 3, q: "Do I need a team to register?", a: "No! You can register as a solo participant and we will put you in a team, or form a team of 3 to 4 members." },
   { id: 4, q: "Where will the event be held?", a: "We have two venues: the Main Venue at Adi Shankara Institute (Kalady) and a second location at Aikyam Space (Matancherry)." },
-  { id: 5, q: "Is there any registration fee?", a: "Absolutely not! Starlet 5.0 is a free event aimed at fostering innovation and community." },
+  { id: 5, q: "Is there any registration fee?", a: "Yes, the registration fee is ₹150 per head. Please ensure you attach the fee payment screenshot during registration." },
   { id: 6, q: "What are the prizes?", a: "We have a total prize pool of over ₹40,000, including awards for the top 3 teams and a special 'Best Innovation' prize." },
   { id: 7, q: "What should I bring with me?", a: "Please bring your own laptop and charger. We'll provide the internet, food, mentorship, and a great environment!" },
   { id: 8, q: "Will there be mentorship available?", a: "Yes! Industry experts and tech mentors will be available throughout the event to guide you and your team." }
@@ -93,17 +87,17 @@ const mentorsData = Array.from({ length: 6 }, (_, i) => ({
 }));
 
 const galleryCaptions = [
-  "Late Night Coding", "Idea Storming", "Winning Moment", "Pizza Fuel", 
-  "The Eureka Moment", "Team Bonding", "Pitch Practice", "Designing the Future",
-  "Focus Mode", "Collaborative Spirit", "Debugging Life", "Coffee & Code",
-  "Innovative Thinking", "Prototyping Fun", "The Presentation", "Celebrating Tech",
-  "Hackathon Hustle", "Building Dreams", "Tech Talk", "Creative Solutions",
-  "The Final Push", "Mentorship Magic", "Code & Creativity", "Future Leaders",
-  "Hackathon Highs", "Problem Solving", "Digital Craftsmanship", "Inspiration Everywhere",
-  "Starlet Vibes", "Empowered Innovators", "Breaking Barriers", "The Next Big Thing",
-  "Coding Journey", "Tech Enthusiasts", "Sparking Ideas", "Minds in Action",
-  "The Winner's Circle", "Collaboration Wins", "Learning & Growing", "Tech Community",
-  "Starlet 5.0 Magic", "Unforgettable Moments"
+  "Collaborative coding & teamwork", "Mentorship & project guidance", "Expert panel review", "Acoustic jam session break",
+  "Talent showcase performances", "Campus nature break", "Starlet 4.0 photobooth memories", "Grand participant overhead group photo",
+  "Casual cafe networking", "Starlet 4.0 photobooth smiles", "Community lunch line", "Collaborative team hacking sessions",
+  "Enthusiastic hackers & teamwork", "Focused hacking session & mentorship", "Peer programming & problem solving", "Hacking lab in full swing",
+  "Intense coding marathon", "Empowering women in tech", "In the coding zone", "Mentorship & Project Evaluation",
+  "Team Brainstorming & Architecture", "Project Pitching & Presentations", "Pair Programming & Peer Support", "Outdoor Coffee Break & Socializing",
+  "Tea Break & Casual Discussions", "Expert Session & Keynote Address", "Workshops & Tech Talks", "Mentors Guiding Hackers in Action",
+  "Interactive Panel & Q&A Session", "Empowering Tech Talks & Guidance", "Engaged Hackathon Participants", "swags",
+  "Community & Mentorship Smiles", "Organizing Team & Keynote Speakers", "Faculty & Esteemed Mentors", "Judgement time",
+  "High Energy Hackers & Celebration", "Interactive Team Games & Icebreakers", "Fun zone", "One-on-One Project Reviews",
+  "Chai & Chats: Refreshment Break", "Sweet Treats & Snack Time"
 ];
 
 function App() {
@@ -1387,7 +1381,7 @@ function App() {
               <a href="#mission" className="nav-link" onClick={() => setIsMenuOpen(false)}>Mission</a>
               <a href="#tracks" className="nav-link" onClick={() => setIsMenuOpen(false)}>Tracks</a>
               <a href="#timeline" className="nav-link" onClick={() => setIsMenuOpen(false)}>Timeline</a>
-              <a href="#hall-of-fame" className="nav-link" onClick={() => setIsMenuOpen(false)}>Hall of Fame</a>
+
               <a href="#rules" className="nav-link" onClick={() => setIsMenuOpen(false)}>Rules</a>
               <a href="#sponsors" className="nav-link" onClick={() => setIsMenuOpen(false)}>Sponsors</a>
 
@@ -1501,20 +1495,44 @@ function App() {
                         </h2>
                         <div className="rules-grid">
                           <div className="warning-item" style={{ "--r": -1 }}>
-                            <div className="warning-icon"><img src="/icons/warning.svg" className="card-icon" alt="warning" /></div>
-                            <p><strong>TEAM SIZE:</strong> Teams can consist of 1 to 4 members. Solo participants are welcome!</p>
+                            <div className="warning-icon"><img src="/icons/users.svg" className="card-icon" alt="users" /></div>
+                            <p><strong>TEAM FORMATION:</strong> Participants form teams of 3 to 4 members. Registering solo? The organizers will create a team for you!</p>
                           </div>
                           <div className="warning-item" style={{ "--r": 1.5 }}>
-                            <div className="warning-icon"><img src="/icons/users.svg" className="card-icon" alt="users" /></div>
-                            <p><strong>ORIGINALITY:</strong> All projects must be started from scratch during the hackathon hours.</p>
+                            <div className="warning-icon"><img src="/icons/warning.svg" className="card-icon" alt="warning" /></div>
+                            <p><strong>REGISTRATION & FEES:</strong> Everyone must submit the registration form with a fee payment screenshot. Registration fees are strictly non-refundable.</p>
                           </div>
                           <div className="warning-item" style={{ "--r": -0.8 }}>
-                            <div className="warning-icon"><img src="/icons/calendar.svg" className="card-icon" alt="calendar" /></div>
-                            <p><strong>ATTENDANCE:</strong> Participants must be present during both days for the full duration.</p>
+                            <div className="warning-icon"><img src="/icons/laptop.svg" className="card-icon" alt="laptop" /></div>
+                            <p><strong>CODE ORIGINALITY:</strong> All projects must be built from scratch during hackathon hours. Pre-existing code is prohibited, except open-source libraries or frameworks.</p>
                           </div>
                           <div className="warning-item" style={{ "--r": 1.2 }}>
+                            <div className="warning-icon"><img src="/icons/rocket.svg" className="card-icon" alt="rocket" /></div>
+                            <p><strong>THEMES & SCOPE:</strong> Projects must align with official hackathon problem statements and guidelines. Teams own their original code and assets.</p>
+                          </div>
+                          <div className="warning-item" style={{ "--r": -1.2 }}>
+                            <div className="warning-icon"><img src="/icons/users.svg" className="card-icon" alt="users" /></div>
+                            <p><strong>COLLABORATION POWER:</strong> Cross-team collaboration is highly encouraged and will win extra points! Seek advice and guidance from mentors and organizers.</p>
+                          </div>
+                          <div className="warning-item" style={{ "--r": 0.8 }}>
+                            <div className="warning-icon"><img src="/icons/calendar.svg" className="card-icon" alt="calendar" /></div>
+                            <p><strong>SUBMISSION DEADLINE:</strong> Submit project documentation, source code, and presentation before the deadline. Late submissions face penalties or disqualification.</p>
+                          </div>
+                          <div className="warning-item" style={{ "--r": -1.5 }}>
+                            <div className="warning-icon"><img src="/icons/trophy.svg" className="card-icon" alt="trophy" /></div>
+                            <p><strong>THE PITCH & JUDGING:</strong> Present your project functionality and innovation to the panel. Judging criteria are clear, and the judges' decision is final.</p>
+                          </div>
+                          <div className="warning-item" style={{ "--r": 1 }}>
                             <div className="warning-icon"><img src="/icons/warning.svg" className="card-icon" alt="warning" /></div>
-                            <p><strong>CONDUCT:</strong> Maintain a respectful and collaborative environment for all innovators.</p>
+                            <p><strong>FAIR PLAY & CONDUCT:</strong> Uphold inclusivity, respect, and professional ethics. Any form of cheating, plagiarism, or harassment results in immediate disqualification.</p>
+                          </div>
+                          <div className="warning-item" style={{ "--r": -0.5 }}>
+                            <div className="warning-icon"><img src="/icons/laptop.svg" className="card-icon" alt="laptop" /></div>
+                            <p><strong>CODE VALIDATION:</strong> Organizers may conduct code validation to ensure development took place within the allotted timeframe and complies with all regulations.</p>
+                          </div>
+                          <div className="warning-item" style={{ "--r": 1.4 }}>
+                            <div className="warning-icon"><img src="/icons/warning.svg" className="card-icon" alt="warning" /></div>
+                            <p><strong>TERMS & CONSENT:</strong> Organizers hold no liability for equipment or losses. Participants consent to promotional media release; organizer arbitration decisions are final.</p>
                           </div>
                         </div>
                       </div>
@@ -1594,36 +1612,6 @@ function App() {
                             </div>
                           );
                         })}
-                      </div>
-                    </div>
-                  ) : section.type === 'hall-of-fame' ? (
-                    <div className="section-content">
-                      <h2 className="text-3d" style={{ fontSize: '2.5rem' }}>{section.title}</h2>
-                      <div className="winner-grid">
-                        <div className="winner-card">
-                          <div className="winner-badge">GOLD WINNER</div>
-                          <div className="winner-project-img"><span>Inclusive Education App</span></div>
-                          <span className="winner-year">STARLET 4.0</span>
-                          <h3>VisionAid</h3>
-                          <p>An AI-powered application designed to help visually impaired students navigate educational materials more effectively.</p>
-                          <div className="view-project-btn">VIEW CASE STUDY →</div>
-                        </div>
-                        <div className="winner-card">
-                          <div className="winner-badge">INNOVATION AWARD</div>
-                          <div className="winner-project-img"><span>Mobility Solution</span></div>
-                          <span className="winner-year">STARLET 3.0</span>
-                          <h3>SwiftMove</h3>
-                          <p>A smart wheelchair attachment that uses ultrasonic sensors to detect obstacles and provide haptic feedback.</p>
-                          <div className="view-project-btn">VIEW CASE STUDY →</div>
-                        </div>
-                        <div className="winner-card">
-                          <div className="winner-badge">IMPACT AWARD</div>
-                          <div className="winner-project-img"><span>Accessibility Tool</span></div>
-                          <span className="winner-year">STARLET 2.0</span>
-                          <h3>SignBridge</h3>
-                          <p>Real-time sign language to speech translation tool to facilitate better communication in public spaces.</p>
-                          <div className="view-project-btn">VIEW CASE STUDY →</div>
-                        </div>
                       </div>
                     </div>
                   ) : section.type === 'prizes' ? (
@@ -1742,7 +1730,11 @@ function App() {
                       <div className="section-inner">
                         <p>{section.content}</p>
                         <div className="section-visual-small">
-                          <img src={section.image} alt={section.title} />
+                          {section.image?.endsWith('.mp4') ? (
+                            <video src={section.image} autoPlay loop muted playsInline style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          ) : (
+                            <img src={section.image} alt={section.title} />
+                          )}
                         </div>
                       </div>
                     </div>

@@ -313,8 +313,9 @@
                 btn.style.pointerEvents = 'none';
 
                 try {
+                    const scale = 3;
                     const canvas = await html2canvas(certElement, {
-                        scale: 4,
+                        scale: scale,
                         useCORS: true,
                         backgroundColor: '#001f3f', // Navy blue to match branding and fix corners
                         logging: false,
@@ -322,10 +323,10 @@
                         allowTaint: true
                     });
                     
-                    const imgData = canvas.toDataURL('image/png');
+                    const imgData = canvas.toDataURL('image/jpeg', 0.90);
                     
-                    const imgWidth = canvas.width / 4;
-                    const imgHeight = canvas.height / 4;
+                    const imgWidth = canvas.width / scale;
+                    const imgHeight = canvas.height / scale;
                     
                     const pdf = new jsPDF({
                         orientation: imgWidth > imgHeight ? 'l' : 'p',
@@ -333,7 +334,7 @@
                         format: [imgWidth, imgHeight]
                     });
 
-                    pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+                    pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight);
                     pdf.save('Starlet5_Certificate_Rounded.pdf');
                 
             } catch (error) {
