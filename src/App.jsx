@@ -181,6 +181,7 @@ function App() {
   const [projectSubmissions, setProjectSubmissions] = useState([]);
   const [mySubmission, setMySubmission] = useState(null);
   const [selectedGalleryImage, setSelectedGalleryImage] = useState(null);
+  const [teamMembers, setTeamMembers] = useState([]);
 
   const galleryRef = useRef(null);
   const requestRef = useRef();
@@ -296,6 +297,32 @@ function App() {
     if (!isLoggedIn || user.role !== 'attendee' || !session?.user?.id) return;
     fetchMySubmission();
   }, [isLoggedIn, user.role, user.teamName, session?.user?.id]);
+
+  useEffect(() => {
+    if (!isLoggedIn || user.role !== 'attendee' || !session?.user?.id) {
+      setTeamMembers([]);
+      return;
+    }
+
+    const fetchMyTeamMembers = async () => {
+      const teamKey = user.teamId ? { column: 'team_id', value: user.teamId } : user.teamName ? { column: 'team_name', value: user.teamName } : null;
+
+      if (!teamKey) {
+        setTeamMembers([]);
+        return;
+      }
+
+      const { data } = await supabase
+        .from('profiles')
+        .select('id, full_name, email, avatar_url, user_role, team_name, team_id')
+        .eq(teamKey.column, teamKey.value)
+        .order('full_name', { ascending: true });
+
+      setTeamMembers(data || []);
+    };
+
+    fetchMyTeamMembers();
+  }, [isLoggedIn, user.role, user.teamId, user.teamName, session?.user?.id]);
 
   const fetchProfile = async (userId) => {
     try {
@@ -2831,6 +2858,23 @@ function App() {
                       <button className="btn-small accept" style={{ marginLeft: '1rem' }} onClick={handleFindTeam}>
                         FIND MY SQUAD
                       </button>
+                    )}
+                  </div>
+                </div>
+                <div className="profile-field">
+                  <label>Team Members</label>
+                  <div className="team-members-list">
+                    {teamMembers.length > 0 ? (
+                      teamMembers.map(member => (
+                        <div key={member.id} className="team-member-item">
+                          <span>{member.full_name}</span>
+                          <small>{member.email}</small>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="field-value" style={{ fontStyle: 'italic', color: 'var(--text-muted)' }}>
+                        No team members found yet.
+                      </div>
                     )}
                   </div>
                 </div>
