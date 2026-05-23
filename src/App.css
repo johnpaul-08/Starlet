@@ -454,15 +454,26 @@ header.header-minimal {
     background-image: radial-gradient(circle at 50% 50%, rgba(255, 20, 147, 0.05) 0%, transparent 70%);
 }
 
-.hero .badge-main {
+.badge-main {
     background: var(--yellow-star);
     color: var(--text-navy);
-    padding: 0.5rem 1.5rem;
+    padding: 0.4rem 1.2rem;
     font-family: 'Fredoka One', cursive;
+    font-size: 0.75rem;
     border: 3px solid var(--text-navy);
+    border-radius: 50px;
+    box-shadow: 3px 3px 0px var(--text-navy);
+    display: inline-block;
+    white-space: nowrap;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.hero .badge-main {
+    padding: 0.5rem 1.5rem;
+    font-size: 0.85rem;
     transform: rotate(-3deg);
     margin-bottom: 2rem;
-    box-shadow: 4px 4px 0px var(--text-navy);
 }
 
 .hero h1 {
