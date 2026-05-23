@@ -55,7 +55,7 @@ const sectionsData = [
   { id: 10, type: 'sponsors', title: "Our Supporters", content: "The organizations making this impact possible.", image: "/brand/Logo.png" },
   { id: 11, type: 'gallery', title: "The Gallery", content: "Captured moments of innovation and fun.", image: "/brand/Logo.png" },
   { id: 12, type: 'faq', title: "Common Doubts", content: "Answers to frequently asked questions.", image: "/icons/warning.svg" },
-  { id: 13, type: 'newsletter', title: "Stay Updated", content: "Join our community to never miss an update.", image: "/icons/rocket.svg" },
+  // { id: 13, type: 'newsletter', title: "Stay Updated", content: "Join our community to never miss an update.", image: "/icons/rocket.svg" },
   { id: 14, type: 'contact', title: "Get in Touch", content: "Reach out for support or inquiries.", image: "/icons/location.svg" }
 ];
 
@@ -158,6 +158,24 @@ function App() {
     } catch (e) { }
   };
 
+  const handleContactSubmit = (e) => {
+    e.preventDefault();
+    try {
+      const form = e.target;
+      const fd = new FormData(form);
+      const name = (fd.get('contactName') || user.name || '').toString().trim();
+      const email = (fd.get('contactEmail') || user.email || '').toString().trim();
+      const desc = (fd.get('contactDesc') || '').toString().trim();
+      const subject = `Enquiry regarding Starlet from ${name || email || 'a participant'}`;
+      const body = `${desc}\n\nFrom: ${name}${email ? ` <${email}>` : ''}`;
+      const recipient = 'hello@mindempowered.com';
+      const mailto = `mailto:${recipient}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+      window.location.href = mailto;
+    } catch (err) {
+      console.error('Contact submit failed', err);
+    }
+  };
+
 
   const [signupRole, setSignupRole] = useState('attendee');
   const [signupAvatar, setSignupAvatar] = useState(null);
@@ -181,6 +199,7 @@ function App() {
   const [projectSubmissions, setProjectSubmissions] = useState([]);
   const [mySubmission, setMySubmission] = useState(null);
   const [selectedGalleryImage, setSelectedGalleryImage] = useState(null);
+  const [teamMembers, setTeamMembers] = useState([]);
 
   const galleryRef = useRef(null);
   const requestRef = useRef();
@@ -292,6 +311,37 @@ function App() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!isLoggedIn || user.role !== 'attendee' || !session?.user?.id) return;
+    fetchMySubmission();
+  }, [isLoggedIn, user.role, user.teamName, session?.user?.id]);
+
+  useEffect(() => {
+    if (!isLoggedIn || user.role !== 'attendee' || !session?.user?.id) {
+      setTeamMembers([]);
+      return;
+    }
+
+    const fetchMyTeamMembers = async () => {
+      const teamKey = user.teamId ? { column: 'team_id', value: user.teamId } : user.teamName ? { column: 'team_name', value: user.teamName } : null;
+
+      if (!teamKey) {
+        setTeamMembers([]);
+        return;
+      }
+
+      const { data } = await supabase
+        .from('profiles')
+        .select('id, full_name, email, avatar_url, user_role, team_name, team_id')
+        .eq(teamKey.column, teamKey.value)
+        .order('full_name', { ascending: true });
+
+      setTeamMembers(data || []);
+    };
+
+    fetchMyTeamMembers();
+  }, [isLoggedIn, user.role, user.teamId, user.teamName, session?.user?.id]);
+
   const fetchProfile = async (userId) => {
     try {
       const { data, error } = await supabase
@@ -301,41 +351,26 @@ function App() {
         .single();
 
       if (error && error.code === 'PGRST116') {
-        // Profile doesn't exist, create a basic one
-        const { data: newData, error: insertError } = await supabase
-          .from('profiles')
-          .insert([{
-            id: userId,
-            full_name: session?.user?.user_metadata?.full_name || 'New User',
-            email: session?.user?.email,
-            user_role: 'attendee',
-            is_approved: true
-          }])
-          .select()
-          .single();
-
-        if (newData) {
-          setUser({
-            name: newData.full_name || '',
-            email: newData.email || '',
-            role: newData.user_role || 'attendee',
-            role_title: newData.role_title || '',
-            isApproved: newData.is_approved || false,
-            venue: newData.venue || '',
-            bio: newData.bio || '',
-            stack: Array.isArray(newData.stack) ? newData.stack : [],
-            college: newData.college || '',
-            avatarUrl: newData.avatar_url || '',
-            teamId: newData.team_id || null,
-            teamName: newData.team_name || '',
-            problemStatementId: newData.problem_statement_id || null,
-            socials: {
-              github: newData.github_url || '',
-              linkedin: newData.linkedin_url || '',
-              twitter: newData.twitter_url || ''
-            }
-          });
-        }
+        setUser({
+          name: 'No such user found!',
+          email: '',
+          role: 'attendee',
+          role_title: '',
+          isApproved: false,
+          venue: '',
+          bio: '',
+          stack: [],
+          college: '',
+          avatarUrl: '',
+          teamId: null,
+          teamName: '',
+          problemStatementId: null,
+          socials: {
+            github: '',
+            linkedin: '',
+            twitter: ''
+          }
+        });
       } else if (data) {
         setUser({
           name: data.full_name || '',
@@ -381,7 +416,7 @@ function App() {
   const [allUsers, setAllUsers] = useState([]);
 
   useEffect(() => {
-    if (isLoggedIn && (user.role === 'mentor' || user.role === 'admin')) {
+    if (isLoggedIn && (user.role === 'mentor' || (user.role === 'admin' && adminActiveTab === 'mentor'))) {
       fetchMentorRequests();
       // Realtime listener for new requests
       const channel = supabase
@@ -400,12 +435,15 @@ function App() {
               ...payload.new,
               attendee: richData
             });
-            setMentorRequests(prev => [payload.new, ...prev]);
+            if (!payload.new.status || payload.new.status === 'pending') {
+              setMentorRequests(prev => [payload.new, ...prev]);
+            }
           }
         )
         .subscribe();
       return () => supabase.removeChannel(channel);
     }
+
     if (isLoggedIn && user.role === 'admin') {
       fetchAllMentors();
       fetchAllUsers();
@@ -418,6 +456,7 @@ function App() {
       .from('mentor_requests')
       .select('*, profiles:attendee_id(full_name, email)')
       .eq('mentor_id', session.user.id)
+      .or('status.is.null,status.eq.pending')
       .order('created_at', { ascending: false });
     if (data) setMentorRequests(data);
   };
@@ -440,6 +479,17 @@ function App() {
       .eq('status', 'open')
       .order('created_at', { ascending: false });
     if (issues) setSystemIssues(issues);
+  };
+
+  const getDisplayTeamName = (teamName) => {
+    if (!teamName) return '';
+    const m = teamName.match(/^Individual-(.+)$/);
+    if (m) {
+      const id = m[1];
+      const member = allUsers.find(u => u.id === id);
+      return member?.full_name || teamName;
+    }
+    return teamName;
   };
 
   const fetchSettings = async () => {
@@ -538,12 +588,19 @@ function App() {
   };
 
   const fetchMySubmission = async () => {
-    if (!session) return;
-    const { data } = await supabase
+    if (!session?.user?.id) return;
+
+    let query = supabase
       .from('project_submissions')
-      .select('*')
-      .or(`submitted_by.eq.${session.user.id},team_name.eq.${user.teamName}`)
-      .single();
+      .select('*');
+
+    if (user.teamName) {
+      query = query.or(`submitted_by.eq.${session.user.id},team_name.eq.${user.teamName}`);
+    } else {
+      query = query.eq('submitted_by', session.user.id);
+    }
+
+    const { data } = await query.maybeSingle();
     if (data) setMySubmission(data);
   };
 
@@ -552,11 +609,19 @@ function App() {
     const formData = new FormData(e.target);
     const files = e.target.photos.files;
 
+    if (formData.get('description').toString().split(' ').length < 100){
+      alert('Please follow the minimum word count for description.');
+      return;
+    }
+
     const uploadedUrls = [];
     for (let i = 0; i < files.length; i++) {
       const url = await handleFileUpload(files[i], 'projects');
       if (url) uploadedUrls.push(url);
     }
+
+    const pptFile = e.target.pptx?.files?.[0];
+    const pptUrl = pptFile ? await handleFileUpload(pptFile, 'projects') : null;
 
     const submissionData = {
       team_name: user.teamName || `Individual-${session.user.id}`,
@@ -565,7 +630,8 @@ function App() {
       github_url: formData.get('github'),
       demo_url: formData.get('demo'),
       submitted_by: session.user.id,
-      image_urls: uploadedUrls
+      image_urls: uploadedUrls,
+      ppt_link: pptUrl
     };
 
     const { error } = await supabase.from('project_submissions').insert([submissionData]);
@@ -1033,7 +1099,7 @@ function App() {
 
         const { error: profileError } = await supabase
           .from('profiles')
-          .insert([
+          .upsert([
             {
               id: authData.user.id,
               full_name: fullName,
@@ -1050,7 +1116,7 @@ function App() {
               team_name: signupRole === 'attendee' ? teamName : null,
               is_approved: signupRole === 'attendee'
             }
-          ]);
+          ], { onConflict: 'id' });
         if (profileError) throw profileError;
 
         // Log the signup action for admin awareness
@@ -1252,6 +1318,8 @@ function App() {
         bio: user.bio,
         venue: user.venue,
         stack: user.stack,
+        github_url: user.socials.github,
+        linkedin_url: user.socials.linkedin,
         updated_at: new Date().toISOString()
       };
 
@@ -1266,7 +1334,9 @@ function App() {
           company: user.venue || 'Starlet Command',
           bio: user.bio,
           expertise: user.stack,
-          avatar_url: user.avatarUrl || '/icons/user-profile.svg'
+          avatar_url: user.avatarUrl || '/icons/user-profile.svg',
+          github_url: user.socials.github,
+          linkedin_url: user.socials.linkedin,
         }).eq('profile_id', session.user.id);
         fetchAllMentors();
       }
@@ -1356,12 +1426,26 @@ function App() {
   };
 
   const scrollGallery = (direction) => {
-    if (galleryRef.current) {
-      const scrollAmount = galleryRef.current.offsetWidth;
-      galleryRef.current.scrollBy({
+    if (!galleryRef.current) return;
+    try {
+      const container = galleryRef.current;
+      const firstItem = container.querySelector('.venue-img-placeholder');
+      let scrollAmount = container.clientWidth;
+
+      if (firstItem) {
+        const itemWidth = firstItem.offsetWidth;
+        const containerStyle = getComputedStyle(container);
+        const gap = parseFloat(containerStyle.gap || containerStyle.columnGap) || 24;
+        scrollAmount = Math.round(itemWidth + gap);
+      }
+
+      container.scrollBy({
         left: direction === 'left' ? -scrollAmount : scrollAmount,
         behavior: 'smooth'
       });
+    } catch (err) {
+      // Fallback: scroll by visible width
+      galleryRef.current.scrollBy({ left: direction === 'left' ? -galleryRef.current.clientWidth : galleryRef.current.clientWidth, behavior: 'smooth' });
     }
   };
 
@@ -1759,33 +1843,27 @@ function App() {
                     <div className="section-content">
                       <h2 className="text-3d" style={{ fontSize: '2.5rem' }}>{section.title}</h2>
                       <div className="contact-container">
-                        <div className="contact-form">
-                          <input type="text" placeholder="Your Name" />
-                          <input type="email" placeholder="Your Email" />
-                          <textarea placeholder="How can we help?"></textarea>
-                          <button className="join-btn" style={{ width: 'fit-content' }}>SEND MESSAGE</button>
-                        </div>
+                        <form className="contact-form" onSubmit={handleContactSubmit}>
+                          <input type="text" name="contactName" placeholder="Your Name" />
+                          <input type="email" name="contactEmail" placeholder="Your Email" />
+                          <textarea name="contactDesc" placeholder="How can we help?"></textarea>
+                          <button type="submit" className="join-btn" style={{ width: 'fit-content' }}>SEND MESSAGE</button>
+                        </form>
 
                         <div className="contact-socials">
                           <h3 className="handwritten social-title">Follow our journey!</h3>
                           <p>Join our community of 5,000+ creators on social media.</p>
                           <div className="social-grid">
-                            <a href="#" className="social-item instagram">
+                            <a href="https://www.instagram.com/mind.empowered/" className="social-item instagram">
                               <img src="/icons/instagram.svg" alt="Instagram" />
                               <span>Instagram</span>
                             </a>
-                            <a href="#" className="social-item discord">
-                              <img src="/icons/discord.svg" alt="Discord" />
-                              <span>Discord</span>
-                            </a>
-                            <a href="#" className="social-item linkedin">
+                            
+                            <a href="https://www.linkedin.com/company/mind-empowered/" className="social-item linkedin">
                               <img src="/icons/linkedin.svg" alt="LinkedIn" />
                               <span>LinkedIn</span>
                             </a>
-                            <a href="#" className="social-item twitter">
-                              <img src="/icons/twitter.svg" alt="Twitter" />
-                              <span>Twitter / X</span>
-                            </a>
+                            
                           </div>
                         </div>
                       </div>
@@ -2047,8 +2125,8 @@ function App() {
                 </div>
               </div>
 
-              <div className="admin-actions-bar" style={{ marginBottom: '3rem' }}>
-                <button className="join-btn" onClick={() => { handleRunAutoTeaming(); logAction('Ran Auto-Teaming Algorithm'); }}>
+              <div className="admin-actions-bar" style={{ marginBottom: '3rem'}}>
+                <button className="join-btn" style={{ marginRight: '12px' }} onClick={() => { handleRunAutoTeaming(); logAction('Ran Auto-Teaming Algorithm'); }}>
                   RUN AUTO-TEAMING ALGORITHM
                 </button>
                 <button
@@ -2511,7 +2589,7 @@ function App() {
                           return (
                             <tr key={team}>
                               <td>
-                                <strong>{team}</strong>
+                                <strong>{getDisplayTeamName(team)}</strong>
                                 {sub && <p style={{ fontSize: '0.8rem', color: 'var(--blue-shadow)' }}>{sub.project_name}</p>}
                               </td>
                               <td>
@@ -2519,6 +2597,7 @@ function App() {
                                   <div style={{ display: 'flex', gap: '0.5rem' }}>
                                     <a href={sub.github_url} target="_blank" rel="noreferrer" className="btn-small accept">CODE</a>
                                     <a href={sub.demo_url} target="_blank" rel="noreferrer" className="btn-small accept">DEMO</a>
+                                    <a href={sub.ppt_link} target="_blank" rel="noreferrer" className="btn-small accept">PRESENTATION</a>
                                   </div>
                                 ) : '-'}
                               </td>
@@ -2645,7 +2724,7 @@ function App() {
                         <img src="/icons/github.svg" alt="GitHub" />
                         <input
                           type="text"
-                          placeholder="GitHub Username"
+                          placeholder="GitHub URL"
                           value={user.socials.github}
                           onChange={(e) => setUser({ ...user, socials: { ...user.socials, github: e.target.value } })}
                         />
@@ -2654,7 +2733,7 @@ function App() {
                         <img src="/icons/linkedin.svg" alt="LinkedIn" />
                         <input
                           type="text"
-                          placeholder="LinkedIn Profile"
+                          placeholder="LinkedIn URL"
                           value={user.socials.linkedin}
                           onChange={(e) => setUser({ ...user, socials: { ...user.socials, linkedin: e.target.value } })}
                         />
@@ -2737,9 +2816,21 @@ function App() {
                   <input
                     type="text"
                     className="profile-input"
-                    value={user.role_title || user.role}
+                    value={user.role_title.toUpperCase() || user.role.toUpperCase()}
                     onChange={(e) => setUser({ ...user, role_title: e.target.value })}
                     placeholder="e.g. Frontend, UI/UX, Backend..."
+                    readOnly
+                  />
+                </div>
+                <div className="profile-field">
+                  <label>Allocated Venue</label>
+                  <input
+                    type="text"
+                    className="profile-input"
+                    value={user.venue.toUpperCase() || user.venue.toUpperCase()}
+                    onChange={(e) => setUser({ ...user, venue: e.target.value })}
+                    placeholder="e.g. Frontend, UI/UX, Backend..."
+                    readOnly
                   />
                 </div>
                 <div className="profile-field">
@@ -2789,6 +2880,23 @@ function App() {
                   </div>
                 </div>
                 <div className="profile-field">
+                  <label>Team Members</label>
+                  <div className="team-members-list">
+                    {teamMembers.length > 0 ? (
+                      teamMembers.map(member => (
+                        <div key={member.id} className="team-member-item">
+                          <span>{member.full_name}</span>
+                          <small>{member.email}</small>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="field-value" style={{ fontStyle: 'italic', color: 'var(--text-muted)' }}>
+                        No team members found yet.
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className="profile-field">
                   <label>Selected Innovation Track</label>
                   <div className="field-value">
                     {user.problemStatementId ? (
@@ -2796,7 +2904,7 @@ function App() {
                         <strong style={{ color: 'var(--text-navy)' }}>
                           {problemStatements.find(ps => ps.id === user.problemStatementId)?.title || 'Selected'}
                         </strong>
-                        <small style={{ color: 'var(--text-muted)' }}>🔒 Selection Locked (Contact admin to change)</small>
+                        <small style={{ color: 'var(--text-muted)', fontSize: '14px' }}>🔒 Selection Locked (Contact admin to change)</small>
                       </div>
                     ) : (
                       <select
@@ -2819,7 +2927,7 @@ function App() {
                       <img src="/icons/github.svg" alt="GitHub" />
                       <input
                         type="text"
-                        placeholder="GitHub Username"
+                        placeholder="GitHub URL"
                         value={user.socials.github}
                         onChange={(e) => setUser({ ...user, socials: { ...user.socials, github: e.target.value } })}
                       />
@@ -2828,7 +2936,7 @@ function App() {
                       <img src="/icons/linkedin.svg" alt="LinkedIn" />
                       <input
                         type="text"
-                        placeholder="LinkedIn Profile"
+                        placeholder="LinkedIn URL"
                         value={user.socials.linkedin}
                         onChange={(e) => setUser({ ...user, socials: { ...user.socials, linkedin: e.target.value } })}
                       />
@@ -2837,9 +2945,14 @@ function App() {
                 </div>
                 <div className="profile-field" style={{ borderBottom: 'none' }}>
                   <label>Support & Assistance</label>
-                  <div className="support-cta-grid">
-                    <div className="support-btn mentor" onClick={() => setActiveView('landing')}>
-                      GO TO MENTOR LIST
+                    <div className="support-cta-grid">
+                    <div className="support-btn mentor" onClick={() => {
+                      setActiveView('landing');
+                      const el = document.getElementById('mentors');
+                      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                      else setTimeout(() => { const el2 = document.getElementById('mentors'); if (el2) el2.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 300);
+                    }}>
+                      CALL MENTOR
                     </div>
                     <div className="support-btn issue" onClick={handleReportIssue}>
                       REPORT AN ISSUE
@@ -2871,6 +2984,14 @@ function App() {
                       <div style={{ marginTop: '1.5rem', display: 'flex', justifyContent: 'center', gap: '1rem' }}>
                         <a href={mySubmission.github_url} target="_blank" rel="noreferrer" className="btn-small accept">VIEW CODE</a>
                         <a href={mySubmission.demo_url} target="_blank" rel="noreferrer" className="btn-small accept">VIEW DEMO</a>
+                        <a href={mySubmission.ppt_link} target="_blank" rel="noreferrer" className="btn-small accept">VIEW PRESENTATION</a>
+                      </div>
+                      <div className="submission-images-grid" style={{ marginTop: '1.5rem' }}>
+                        {(mySubmission.image_urls || []).map((img, i) => (
+                          <div key={i} className="submission-img-placeholder">
+                            <img src={img} alt={`submission-${i}`} />
+                          </div>
+                        ))}
                       </div>
                     </div>
                   ) : (
@@ -2896,6 +3017,10 @@ function App() {
                       <div className="input-group" style={{ marginTop: '1rem' }}>
                         <label style={{ color: 'var(--text-navy)', fontWeight: 'bold' }}>Project Photos (Max 3)</label>
                         <input name="photos" type="file" accept="image/*" multiple style={{ width: '100%', padding: '0.8rem' }} />
+                      </div>
+                      <div className="input-group" style={{ marginTop: '1rem' }}>
+                        <label style={{ color: 'var(--text-navy)', fontWeight: 'bold' }}>Project Presentation</label>
+                        <input name="pptx" type="file" accept="application/vnd.openxmlformats-officedocument.presentationml.presentation" style={{ width: '100%', padding: '0.8rem' }} />
                       </div>
                       <button type="submit" className="join-btn" style={{ width: '100%', marginTop: '1.5rem' }}>
                         SUBMIT FINAL PROJECT
@@ -3038,7 +3163,7 @@ function App() {
               </div>
             ) : (
               venues.map(v => (
-                <div key={v.id} className="venue-card map-section">
+                <><div key={v.id} className="venue-card map-section">
                   <h2 className="text-3d">{v.name}</h2>
                   <div className="map-placeholder">
                     <img src="/icons/location.svg" alt="map" className="map-icon" />
@@ -3057,33 +3182,27 @@ function App() {
                   >
                     OPEN IN GOOGLE MAPS
                   </a>
-                </div>
+                </div><div className="venue-card gallery-section-venue">
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                      <h2 className="text-3d" style={{ margin: 0 }}>Venue Gallery</h2>
+                      <div className="gallery-nav-btns">
+                        <button className="nav-icon-btn small" onClick={() => scrollGallery('left')}>←</button>
+                        <button className="nav-icon-btn small" onClick={() => scrollGallery('right')}>→</button>
+                      </div>
+                    </div>
+                    <div className="venue-image-grid" ref={galleryRef}>
+                    { v.image_urls.replace(/\[|\]/g,'').replace(/"/g, '').split(',').map(img => (
+                        <div className="venue-img-placeholder">
+                          <img src={img} />
+                        </div>
+                    ))}
+                    </div>
+                    
+                  </div></>
               ))
             )}
 
-            <div className="venue-card gallery-section-venue">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                <h2 className="text-3d" style={{ margin: 0 }}>Venue Gallery</h2>
-                <div className="gallery-nav-btns">
-                  <button className="nav-icon-btn small" onClick={() => scrollGallery('left')}>←</button>
-                  <button className="nav-icon-btn small" onClick={() => scrollGallery('right')}>→</button>
-                </div>
-              </div>
-              <div className="venue-image-grid" ref={galleryRef}>
-                <div className="venue-img-placeholder">
-                  <span>Main Entrance Preview</span>
-                </div>
-                <div className="venue-img-placeholder">
-                  <span>Hacking Hall Preview</span>
-                </div>
-                <div className="venue-img-placeholder">
-                  <span>Chill Zone Preview</span>
-                </div>
-                <div className="venue-img-placeholder">
-                  <span>Workshop Area Preview</span>
-                </div>
-              </div>
-            </div>
+
 
             <div className="venue-card transport-section">
               <h2 className="text-3d">Transport</h2>
