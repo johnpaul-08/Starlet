@@ -3396,25 +3396,24 @@ function App() {
           </div>
         </div>
       )}
-
       {selectedMentor && (
         <div className="modal-overlay" onClick={() => setSelectedMentor(null)}>
-          <div className="modal-content mentor-modal" style={{ padding: 0, overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
+          <div className="modal-content mentor-modal" onClick={e => e.stopPropagation()}>
             
             {/* Flush Navy Banner Header */}
-            <div className="modal-header" style={{ background: 'var(--text-navy)', color: '#fff', padding: '1.8rem 2.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '5px solid var(--pink-primary)' }}>
+            <div className="mentor-modal-header">
               <div style={{ display: 'flex', alignItems: 'center', gap: '1.2rem' }}>
-                <span style={{ fontSize: '2.5rem' }}>✨</span>
+                <span className="sparkle-emoji" style={{ fontSize: '2.5rem' }}>✨</span>
                 <div>
                   <h2 className="text-3d" style={{ fontSize: '2.4rem', margin: 0, color: '#fff', textShadow: '4px 4px 0px var(--pink-primary)' }}>{selectedMentor.full_name}</h2>
                   <span style={{ fontSize: '0.9rem', color: 'var(--yellow-star)', fontFamily: "'Fredoka One', cursive", letterSpacing: '2px' }}>STARLET VERIFIED MENTOR</span>
                 </div>
               </div>
-              <button className="modal-close" style={{ background: 'var(--pink-primary)', color: '#fff', border: '3px solid #fff', width: '48px', height: '48px', borderRadius: '50%', fontSize: '1.8rem', fontWeight: 'bold', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', boxShadow: '4px 4px 0px #000' }} onClick={() => setSelectedMentor(null)}>×</button>
+              <button className="mentor-modal-close" onClick={() => setSelectedMentor(null)}>×</button>
             </div>
 
             {/* Content Area */}
-            <div className="mentor-modal-content" style={{ display: 'grid', gridTemplateColumns: '1fr 1.6fr', gap: '2.5rem', padding: '3rem 2.5rem', alignItems: 'start' }}>
+            <div className="mentor-modal-content" style={{ alignItems: 'start' }}>
               
               {/* Left Column: Profile Card */}
               <div className="mentor-modal-side" style={{ background: '#fff', border: '4px solid var(--text-navy)', borderRadius: '30px', padding: '2.5rem 1.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', boxShadow: '8px 8px 0px var(--blue-shadow)' }}>
