@@ -89,24 +89,28 @@ const SponsorsPage = ({ onBack }) => {
           </table>
         </div>
 
-        <div style={{ background: 'var(--glass-bg)', padding: '2rem', borderRadius: '20px', border: '1px solid var(--glass-border)', backdropFilter: 'blur(15px)' }}>
-          <h2 style={{ color: 'var(--text-navy)', marginBottom: '1.5rem', textAlign: 'center' }}>In Collaboration With</h2>
-          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '3rem', alignItems: 'center' }}>
-            <div style={{ textAlign: 'center', flex: '1 1 250px', maxWidth: '350px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-              <div style={{ background: '#fff', padding: '1rem', borderRadius: '15px', border: '3px solid var(--text-navy)', boxShadow: '5px 5px 0px var(--text-navy)', display: 'flex', alignItems: 'center', justifyContent: 'center', height: '110px', width: '220px', marginBottom: '1rem' }}>
-                <img src="/collaborators/adi sankara.png" alt="Adi Shankara" style={{ maxHeight: '90px', maxWidth: '100%', objectFit: 'contain' }} />
-              </div>
-              <h3 style={{ fontSize: '1.1rem', color: 'var(--text-navy)', margin: '0 0 0.2rem 0' }}>Adi Shankara</h3>
-              <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: 0 }}>Institute of Engineering and Technology</p>
-            </div>
+        <div style={{ background: 'var(--glass-bg)', padding: '3rem 2rem', borderRadius: '20px', border: '1px solid var(--glass-border)', backdropFilter: 'blur(15px)' }}>
+          <h2 className="text-3d" style={{ color: 'var(--text-navy)', marginBottom: '2.5rem', textAlign: 'center', fontSize: '2.2rem' }}>In Collaboration With</h2>
+          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '3rem' }}>
             
-            <div style={{ textAlign: 'center', flex: '1 1 250px', maxWidth: '350px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-              <div style={{ background: '#fff', padding: '1rem', borderRadius: '15px', border: '3px solid var(--text-navy)', boxShadow: '5px 5px 0px var(--text-navy)', display: 'flex', alignItems: 'center', justifyContent: 'center', height: '110px', width: '220px', marginBottom: '1rem' }}>
-                <img src="/collaborators/nss.png" alt="NSS ASIET" style={{ maxHeight: '90px', maxWidth: '100%', objectFit: 'contain' }} />
+            <div className="collaborator-card" style={{ width: '300px', height: '320px', margin: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span className="badge-main" style={{ background: 'var(--pink-primary)', transform: 'rotate(-2deg)', marginBottom: '0.5rem' }}>COLLABORATOR</span>
+              <img src="/collaborators/adi sankara.png" alt="Adi Shankara" style={{ height: '90px', width: 'auto', objectFit: 'contain' }} />
+              <div style={{ textAlign: 'center' }}>
+                <h3 className="text-3d" style={{ fontSize: '1rem', color: 'var(--text-navy)', margin: '0 0 0.2rem 0' }}>ADI SHANKARA</h3>
+                <p style={{ fontSize: '0.8rem', color: '#555', fontWeight: 'bold' }}>MAIN VENUE PARTNER</p>
               </div>
-              <h3 style={{ fontSize: '1.1rem', color: 'var(--text-navy)', margin: '0 0 0.2rem 0' }}>NSS ASIET</h3>
-              <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: 0 }}>National Service Scheme</p>
             </div>
+
+            <div className="collaborator-card" style={{ width: '300px', height: '320px', margin: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span className="badge-main" style={{ background: 'var(--pink-primary)', transform: 'rotate(-2deg)', marginBottom: '0.5rem' }}>COLLABORATOR</span>
+              <img src="/collaborators/nss.png" alt="NSS ASIET" style={{ height: '90px', width: 'auto', objectFit: 'contain' }} />
+              <div style={{ textAlign: 'center' }}>
+                <h3 className="text-3d" style={{ fontSize: '1rem', color: 'var(--text-navy)', margin: '0 0 0.2rem 0' }}>NSS ASIET</h3>
+                <p style={{ fontSize: '0.8rem', color: '#555', fontWeight: 'bold' }}>STUDENT SUPPORT PARTNER</p>
+              </div>
+            </div>
+
           </div>
         </div>
 

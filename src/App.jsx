@@ -1659,7 +1659,7 @@ function App() {
               <div className="subtitle-large">
                 A place where your ideas make you a star
               </div>
-              <div className="handwritten" style={{ fontSize: '1.4rem', color: 'var(--text-navy)', marginTop: '1rem', background: 'rgba(255, 253, 240, 0.8)', padding: '0.5rem 1.5rem', borderRadius: '15px', border: '2px dashed var(--text-navy)', display: 'inline-block' }}>
+              <div className="handwritten" style={{ fontSize: '1.4rem', color: 'var(--text-navy)', margin: '1rem auto 3.5rem', background: 'rgba(255, 253, 240, 0.9)', padding: '0.8rem 2rem', borderRadius: '15px', border: '2px dashed var(--text-navy)', display: 'inline-block', boxShadow: '0 4px 10px rgba(0, 0, 0, 0.05)' }}>
                 In Collaboration with <strong>Adi Shankara</strong> & <strong>NSS ASIET</strong>
               </div>
 
@@ -1778,30 +1778,38 @@ function App() {
                   ) : section.type === 'sponsors' ? (
                     <div className="section-content">
                       <h2 className="text-3d" style={{ fontSize: '2.5rem' }}>{section.title}</h2>
-                      <div className="sponsor-grid">
-                        <div className="sponsor-card main-organizer clickable" onClick={() => setShowAboutPopup(true)}>
+                      
+                      {/* Organizers & Collaborators Grid */}
+                      <div className="partners-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '2.5rem', marginBottom: '4rem', marginTop: '2.5rem' }}>
+                        <div className="sponsor-card main-organizer clickable" onClick={() => setShowAboutPopup(true)} style={{ margin: 0, height: '100%', gridColumn: 'span 1' }}>
                           <span className="badge-main">MAIN ORGANIZER</span>
-                          <img src="/brand/Mind Empowered.gif" alt="Mind Empowered" />
+                          <img src="/brand/Mind Empowered.gif" alt="Mind Empowered" style={{ height: '90px', width: 'auto', objectFit: 'contain' }} />
                           <h3 className="text-3d" style={{ fontSize: '1.2rem' }}>MIND EMPOWERED</h3>
                         </div>
 
-                        <div className="sponsor-card collaborator-card">
+                        <div className="sponsor-card collaborator-card" style={{ height: '100%' }}>
                           <span className="badge-main" style={{ background: 'var(--pink-primary)' }}>COLLABORATOR</span>
-                          <img src="/collaborators/adi sankara.png" alt="Adi Shankara" />
-                          <h3 className="text-3d" style={{ fontSize: '1rem' }}>ADI SHANKARA</h3>
+                          <img src="/collaborators/adi sankara.png" alt="Adi Shankara" style={{ height: '90px', width: 'auto', objectFit: 'contain' }} />
+                          <h3 className="text-3d" style={{ fontSize: '1.1rem' }}>ADI SHANKARA</h3>
                         </div>
 
-                        <div className="sponsor-card collaborator-card">
+                        <div className="sponsor-card collaborator-card" style={{ height: '100%' }}>
                           <span className="badge-main" style={{ background: 'var(--pink-primary)' }}>COLLABORATOR</span>
-                          <img src="/collaborators/nss.png" alt="NSS ASIET" />
-                          <h3 className="text-3d" style={{ fontSize: '1rem' }}>NSS ASIET</h3>
+                          <img src="/collaborators/nss.png" alt="NSS ASIET" style={{ height: '90px', width: 'auto', objectFit: 'contain' }} />
+                          <h3 className="text-3d" style={{ fontSize: '1.1rem' }}>NSS ASIET</h3>
                         </div>
+                      </div>
 
-                        {[1, 2].map(i => (
-                          <div key={i} className="sponsor-placeholder">
-                            YOUR LOGO HERE
-                          </div>
-                        ))}
+                      {/* Sponsor Placeholders Section */}
+                      <div style={{ textAlign: 'center', marginTop: '4rem' }}>
+                        <h3 className="handwritten" style={{ fontSize: '2rem', color: 'var(--text-navy)', marginBottom: '1.5rem' }}>Become a Sponsor</h3>
+                        <div className="sponsor-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '2rem' }}>
+                          {[1, 2, 3, 4].map(i => (
+                            <div key={i} className="sponsor-placeholder" style={{ height: '120px' }}>
+                              YOUR LOGO HERE
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     </div>
                   ) : section.type === 'gallery' ? (
