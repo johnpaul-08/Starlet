@@ -3,6 +3,8 @@ import './App.css';
 import { supabase } from './supabaseClient';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+import SponsorsPage from './SponsorsPage';
+
 
 const sectionsData = [
 
@@ -38,7 +40,7 @@ const sectionsData = [
     id: 4,
     type: 'timeline',
     title: "The Roadmap",
-    content: "11th July 2026, Saturday 9:00am - 5:00pm and 12th July 2026, Sunday 9:00am - 5:00pm",
+    content: "11th July 2026, Saturday 8:00am - 5:00pm and 12th July 2026, Sunday 8:00am - 5:00pm",
     image: "/brand/Logo.png"
   },
 
@@ -51,7 +53,7 @@ const sectionsData = [
   },
   { id: 7, type: 'rules', title: "Rules of the Galaxy", content: "Fair play and collaboration are the heart of Starlet.", image: "/icons/warning.svg" },
   { id: 8, type: 'mentors', title: "Meet Your Mentors", content: "Industry experts ready to guide your journey.", image: "/icons/user-profile.svg" },
-  { id: 9, type: 'community', title: "Make New Friends", content: "Starlet isn't just an innovation marathon — it's the starting point for lifelong sisterhood and professional networking. Connect with passionate creators, find potential co-founders, share late-night coding breakthroughs, and become part of an empowered tech community that champions your growth!", image: "/svg/2.svg" },
+  { id: 9, type: 'community', title: "Make New Friends", content: "Starlet isn't just an innovation marathon — it's the starting point for lifelong sisterhood and professional networking. Connect with passionate creators, find potential co-founders, share exciting coding breakthroughs, and become part of an empowered tech community that champions your growth!", image: "/svg/2.svg" },
   { id: 10, type: 'sponsors', title: "Our Supporters", content: "The organizations making this impact possible.", image: "/brand/Logo.png" },
   { id: 11, type: 'gallery', title: "The Gallery", content: "Captured moments of innovation and fun.", image: "/brand/Logo.png" },
   { id: 12, type: 'faq', title: "Common Doubts", content: "Answers to frequently asked questions.", image: "/icons/warning.svg" },
@@ -91,7 +93,7 @@ const galleryCaptions = [
   "Talent showcase performances", "Campus nature break", "Starlet 4.0 photobooth memories", "Grand participant overhead group photo",
   "Casual cafe networking", "Starlet 4.0 photobooth smiles", "Community lunch line", "Collaborative team hacking sessions",
   "Enthusiastic hackers & teamwork", "Focused hacking session & mentorship", "Peer programming & problem solving", "Hacking lab in full swing",
-  "Intense coding marathon", "Empowering women in tech", "In the coding zone", "Mentorship & Project Evaluation",
+  "Intense coding marathon", "Empowering women in tech", "In the coding zone", "Inclusive Environment: Sign language support & accessible mentorship",
   "Team Brainstorming & Architecture", "Project Pitching & Presentations", "Pair Programming & Peer Support", "Outdoor Coffee Break & Socializing",
   "Tea Break & Casual Discussions", "Expert Session & Keynote Address", "Workshops & Tech Talks", "Mentors Guiding Hackers in Action",
   "Interactive Panel & Q&A Session", "Empowering Tech Talks & Guidance", "Engaged Hackathon Participants", "swags",
@@ -1556,7 +1558,7 @@ function App() {
       <div className="sparkle s2">✧</div>
       <div className="sparkle s3">✦</div>
 
-      <header className={activeView !== 'landing' ? 'header-minimal' : ''}>
+      <header className={activeView !== 'landing' && activeView !== 'sponsors-overview' ? 'header-minimal' : ''}>
         <div className="logo-circle" onClick={() => setActiveView('landing')} style={{ cursor: 'pointer' }}>
           <img src="/brand/Logo.png" alt="Starlet Logo" />
         </div>
@@ -1570,6 +1572,7 @@ function App() {
 
               <a href="#rules" className="nav-link" onClick={() => setIsMenuOpen(false)}>Rules</a>
               <a href="#sponsors" className="nav-link" onClick={() => setIsMenuOpen(false)}>Sponsors</a>
+              <a href="#" className="nav-link" onClick={(e) => { e.preventDefault(); setActiveView('sponsors-overview'); setIsMenuOpen(false); }}>UIC Overview</a>
 
               <div className="mobile-auth-wrapper">
                 {isLoggedIn ? (
@@ -1580,7 +1583,7 @@ function App() {
                 ) : (
                   <div className="mobile-auth-btns">
                     <div className="login-btn" onClick={() => { setActiveView('login'); setIsMenuOpen(false); }}>LOGIN</div>
-                    <div className="join-btn" onClick={() => { setShowRegPopup(true); setIsMenuOpen(false); }}>REGISTER</div>
+                    <div className="join-btn" onClick={() => { setActiveView('signup'); setIsMenuOpen(false); }}>SIGN UP</div>
                   </div>
                 )}
               </div>
@@ -1608,11 +1611,35 @@ function App() {
                 ) : (
                   <>
                     <div className="login-btn" onClick={() => setActiveView('login')}>LOGIN</div>
-                    <div className="join-btn" onClick={() => setShowRegPopup(true)}>REGISTER</div>
+                    <div className="join-btn" onClick={() => setActiveView('signup')}>SIGN UP</div>
                   </>
                 )}
               </div>
 
+              <div className="mobile-menu-btn" onClick={() => setIsMenuOpen(!isMenuOpen)}>
+                <img src={isMenuOpen ? "/icons/close.svg" : "/icons/hamburger.svg"} alt="menu" />
+              </div>
+            </div>
+          </>
+        )}
+
+        {activeView === 'sponsors-overview' && (
+          <>
+            <nav className={`nav-links ${isMenuOpen ? 'mobile-active' : ''}`}>
+              <a href="/pdf/Milaap%202026%20Starlet%20.pdf" download="Milaap 2026 Starlet.pdf" className="nav-link" onClick={() => setIsMenuOpen(false)}>Milaap 2026 Starlet PDF</a>
+              <a href="/pdf/Starlet%205.0%20adishankara.pdf" download="Starlet 5.0 adishankara.pdf" className="nav-link" onClick={() => setIsMenuOpen(false)}>Starlet 5.0 Adi Shankara PDF</a>
+            </nav>
+            <div className="header-actions">
+              <div 
+                className="nav-btn-round" 
+                onClick={() => setActiveView('landing')} 
+                title="Back to Home"
+              >
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                  <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                </svg>
+              </div>
               <div className="mobile-menu-btn" onClick={() => setIsMenuOpen(!isMenuOpen)}>
                 <img src={isMenuOpen ? "/icons/close.svg" : "/icons/hamburger.svg"} alt="menu" />
               </div>
@@ -1631,6 +1658,9 @@ function App() {
               <h1 className="text-3d">STARLET 5.0</h1>
               <div className="subtitle-large">
                 A place where your ideas make you a star
+              </div>
+              <div className="handwritten" style={{ fontSize: '1.4rem', color: 'var(--text-navy)', margin: '1rem auto 3.5rem', background: 'rgba(255, 253, 240, 0.9)', padding: '0.8rem 2rem', borderRadius: '15px', border: '2px dashed var(--text-navy)', display: 'inline-block', boxShadow: '0 4px 10px rgba(0, 0, 0, 0.05)' }}>
+                In Collaboration with <strong>Adi Shankara</strong> & <strong>NSS ASIET</strong>
               </div>
 
               <div className="hero-ctas">
@@ -1665,11 +1695,11 @@ function App() {
                       <div className="handwritten">
                         <div className="timeline-event">
                           <span className="timeline-date">July 11th, Sat</span>
-                          <span className="timeline-desc">Day 1: 9:00am - 5:00pm - Kickoff, Ideation & Coding <img src="/icons/rocket.svg" className="inline-icon" alt="rocket" /></span>
+                          <span className="timeline-desc">Day 1: 8:00am - 5:00pm - Kickoff, Ideation & Coding <img src="/icons/rocket.svg" className="inline-icon" alt="rocket" /></span>
                         </div>
                         <div className="timeline-event">
                           <span className="timeline-date">July 12th, Sun</span>
-                          <span className="timeline-desc">Day 2: 9:00am - 5:00pm - Finalizing, Pitches & Awards <img src="/icons/trophy.svg" className="inline-icon" alt="trophy" /></span>
+                          <span className="timeline-desc">Day 2: 8:00am - 5:00pm - Finalizing, Pitches & Awards <img src="/icons/trophy.svg" className="inline-icon" alt="trophy" /></span>
                         </div>
                       </div>
                     </div>
@@ -1748,17 +1778,38 @@ function App() {
                   ) : section.type === 'sponsors' ? (
                     <div className="section-content">
                       <h2 className="text-3d" style={{ fontSize: '2.5rem' }}>{section.title}</h2>
-                      <div className="sponsor-grid">
-                        <div className="sponsor-card main-organizer clickable" onClick={() => setShowAboutPopup(true)}>
-                          <span className="badge-main">MAIN ORGANIZER</span>
+                      
+                      {/* Organizers & Collaborators Grid */}
+                      <div className="partners-grid-custom">
+                        <div className="partner-card-square main-org clickable" onClick={() => setShowAboutPopup(true)}>
+                          <span className="badge-main" style={{ position: 'absolute', top: '-15px', left: '50%', transform: 'translateX(-50%) rotate(-2deg)', zIndex: 2 }}>MAIN ORGANIZER</span>
                           <img src="/brand/Mind Empowered.gif" alt="Mind Empowered" />
-                          <h3 className="text-3d" style={{ fontSize: '1.2rem' }}>MIND EMPOWERED</h3>
                         </div>
-                        {[1, 2, 3, 4].map(i => (
-                          <div key={i} className="sponsor-placeholder">
-                            YOUR LOGO HERE
+
+                        <div className="partner-card-wide">
+                          <span className="badge-main" style={{ position: 'absolute', top: '-15px', left: '50%', transform: 'translateX(-50%) rotate(-2deg)', zIndex: 2, background: 'var(--pink-primary)' }}>COLLABORATOR</span>
+                          <img src="/collaborators/adi sankara.png" alt="Adi Shankara" style={{ height: '90px', width: 'auto', objectFit: 'contain', marginTop: '1.5rem' }} />
+                          <div style={{ textAlign: 'center' }}>
+                            <p style={{ fontSize: '0.8rem', color: '#555', fontWeight: 'bold', margin: 0 }}>MAIN VENUE PARTNER</p>
                           </div>
-                        ))}
+                        </div>
+
+                        <div className="partner-card-square collab-nss">
+                          <span className="badge-main" style={{ position: 'absolute', top: '-15px', left: '50%', transform: 'translateX(-50%) rotate(-2deg)', zIndex: 2, background: 'var(--pink-primary)' }}>COLLABORATOR</span>
+                          <img src="/collaborators/nss.png" alt="NSS ASIET" />
+                        </div>
+                      </div>
+
+                      {/* Sponsor Placeholders Section */}
+                      <div style={{ textAlign: 'center', marginTop: '4rem' }}>
+                        <h3 className="handwritten" style={{ fontSize: '2rem', color: 'var(--text-navy)', marginBottom: '1.5rem' }}>Sponsors</h3>
+                        <div className="sponsor-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '2rem' }}>
+                          {[1, 2, 3, 4].map(i => (
+                            <div key={i} className="sponsor-placeholder" style={{ height: '120px' }}>
+                              YOUR LOGO HERE
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     </div>
                   ) : section.type === 'gallery' ? (
@@ -3243,6 +3294,8 @@ function App() {
 
           <div onClick={() => setActiveView('landing')} style={{ marginTop: '3rem', cursor: 'pointer', color: 'var(--blue-shadow)', textAlign: 'center', width: '100%' }}>← Back to Home</div>
         </div>
+      ) : activeView === 'sponsors-overview' ? (
+        <SponsorsPage onBack={() => setActiveView('landing')} />
       ) : null}
 
       <div className={`scroll-top-btn ${showScrollTop ? 'visible' : ''}`} onClick={scrollToTop}>
