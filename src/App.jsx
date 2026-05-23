@@ -1802,7 +1802,7 @@ function App() {
 
                       {/* Sponsor Placeholders Section */}
                       <div style={{ textAlign: 'center', marginTop: '4rem' }}>
-                        <h3 className="handwritten" style={{ fontSize: '2rem', color: 'var(--text-navy)', marginBottom: '1.5rem' }}>Become a Sponsor</h3>
+                        <h3 className="handwritten" style={{ fontSize: '2rem', color: 'var(--text-navy)', marginBottom: '1.5rem' }}>Sponsors</h3>
                         <div className="sponsor-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '2rem' }}>
                           {[1, 2, 3, 4].map(i => (
                             <div key={i} className="sponsor-placeholder" style={{ height: '120px' }}>
