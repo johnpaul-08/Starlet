@@ -1578,10 +1578,16 @@ function App() {
 
               <div className="mobile-auth-wrapper">
                 {isLoggedIn ? (
-                  <div className="mobile-profile-link" onClick={() => { setActiveView('profile'); setIsMenuOpen(false); }}>
-                    <img src="/icons/user-profile.svg" alt="profile" />
-                    <span>My Profile</span>
-                  </div>
+                  <>
+                    <div className="mobile-profile-link" onClick={() => { setActiveView('venue'); setIsMenuOpen(false); }}>
+                      <img src="/icons/location.svg" alt="venue" />
+                      <span>Venue Details</span>
+                    </div>
+                    <div className="mobile-profile-link" onClick={() => { setActiveView('profile'); setIsMenuOpen(false); }}>
+                      <img src="/icons/user-profile.svg" alt="profile" />
+                      <span>My Profile</span>
+                    </div>
+                  </>
                 ) : (
                   <div className="mobile-auth-btns">
                     <div className="login-btn" onClick={() => { setActiveView('login'); setIsMenuOpen(false); }}>LOGIN</div>
@@ -3236,77 +3242,115 @@ function App() {
                 <p>We are finalizing the coordinates for the Starlet 5.0 hubs. Check back later!</p>
               </div>
             ) : (
-              venues.map(v => (
-                <><div key={v.id} className="venue-card map-section">
-                  <h2 className="text-3d">{v.name}</h2>
-                  <div className="map-placeholder">
-                    <img src="/icons/location.svg" alt="map" className="map-icon" />
-                    <p>{v.description}</p>
-                    <div className="venue-address">
-                      <strong>Address:</strong><br />
-                      {v.address}
+              venues.map(v => {
+                const isAdiShankara = v.name.toLowerCase().includes('adi shankara') || v.name.toLowerCase().includes('adi sankara');
+                const isAikyamSpace = v.name.toLowerCase().includes('aikyam space');
+                return (
+                  <React.Fragment key={v.id}>
+                    <div className="venue-card map-section">
+                      <h2 className="text-3d">{v.name}</h2>
+                      <div className="map-placeholder">
+                        <p>{v.description}</p>
+                        <div className="venue-address">
+                          <img src="/icons/location.svg" alt="map" className="map-icon" style={{ width: '30px', height: '30px', opacity: 0.8, display: 'block', margin: '0 auto 0.5rem auto' }} />
+                          <strong>Address:</strong><br />
+                          {v.address}
+                        </div>
+                      </div>
+                      <a
+                        href={v.google_maps_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="join-btn"
+                        style={{ marginTop: '1.5rem', textAlign: 'center', display: 'block', textDecoration: 'none' }}
+                      >
+                        OPEN IN GOOGLE MAPS
+                      </a>
                     </div>
-                  </div>
-                  <a
-                    href={v.google_maps_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="join-btn"
-                    style={{ marginTop: '1.5rem', textAlign: 'center', display: 'block', textDecoration: 'none' }}
-                  >
-                    OPEN IN GOOGLE MAPS
-                  </a>
-                </div><div className="venue-card gallery-section-venue">
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                      <h2 className="text-3d" style={{ margin: 0 }}>Venue Gallery</h2>
-                      <div className="gallery-nav-btns">
-                        <button className="nav-icon-btn small" onClick={() => scrollGallery('left')}>←</button>
-                        <button className="nav-icon-btn small" onClick={() => scrollGallery('right')}>→</button>
+                    <div className="venue-card gallery-section-venue">
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                        <h2 className="text-3d" style={{ margin: 0 }}>Venue Gallery</h2>
+                        <div className="gallery-nav-btns">
+                          <button className="nav-icon-btn small" onClick={() => scrollGallery('left')}>←</button>
+                          <button className="nav-icon-btn small" onClick={() => scrollGallery('right')}>→</button>
+                        </div>
+                      </div>
+                      <div className="venue-image-grid" ref={galleryRef}>
+                        {v.image_urls.replace(/\[|\]/g,'').replace(/"/g, '').split(',').map((img, idx) => (
+                          <div key={idx} className="venue-img-placeholder">
+                            <img src={img} alt={`venue-${idx}`} />
+                          </div>
+                        ))}
                       </div>
                     </div>
-                    <div className="venue-image-grid" ref={galleryRef}>
-                    { v.image_urls.replace(/\[|\]/g,'').replace(/"/g, '').split(',').map(img => (
-                        <div className="venue-img-placeholder">
-                          <img src={img} />
+                    {isAdiShankara && (
+                      <div className="venue-card transport-section">
+                        <h2 className="text-3d">Transport</h2>
+                        <div className="transport-list">
+                          <div className="transport-item">
+                            <div className="transport-icon"><img src="/icons/train.svg" alt="train" style={{ width: '40px' }} /></div>
+                            <div className="transport-info">
+                              <h3>By Train</h3>
+                              <p><strong>Nearest Railway Station:</strong> Angamaly for Kalady (AFK) is the closest station, located roughly 7 to 8 km away from the campus.</p>
+                              <p><strong>Alternative Station:</strong> Aluva (AWY) railway station is about 17 km away and is a major stop for almost all express trains.</p>
+                              <small><strong>How to proceed:</strong> You can easily find local KSRTC buses, private buses, or auto-rickshaws from either station heading toward Kalady.</small>
+                            </div>
+                          </div>
+                          <div className="transport-item">
+                            <div className="transport-icon"><img src="/icons/bus.svg" alt="bus" style={{ width: '40px' }} /></div>
+                            <div className="transport-info">
+                              <h3>By Bus</h3>
+                              <p><strong>Local Buses:</strong> Frequent private and KSRTC buses run between Angamaly and Perumbavoor via Kalady.</p>
+                              <small><strong>Drop-off Point:</strong> You can get down at the Mattoor Junction or the designated Adi Shankara college bus stop on the Angamaly-Kalady road. The campus is just a short walk or quick auto ride from the main road.</small>
+                            </div>
+                          </div>
+                          <div className="transport-item">
+                            <div className="transport-icon"><img src="/icons/car.svg" alt="car" style={{ width: '40px' }} /></div>
+                            <div className="transport-info">
+                              <h3>Car / Ride Share</h3>
+                              <p><strong>Location:</strong> The campus is situated at Vidya Bharathi Nagar, Mattoor, Kalady, right along the main road connecting Angamaly and Kalady.</p>
+                              <small><strong>Parking:</strong> The campus provides extensive, designated parking spaces on-site.</small>
+                            </div>
+                          </div>
                         </div>
-                    ))}
-                    </div>
-                    
-                  </div></>
-              ))
+                      </div>
+                    )}
+                    {isAikyamSpace && (
+                      <div className="venue-card transport-section">
+                        <h2 className="text-3d">Transport</h2>
+                        <div className="transport-list">
+                          <div className="transport-item">
+                            <div className="transport-icon"><img src="/icons/ferry.svg" alt="transit" style={{ width: '40px' }} /></div>
+                            <div className="transport-info">
+                              <h3>By Public Bus & Ferry (Transit)</h3>
+                              <p>Public transportation from Thrissur takes approximately 3 hours and 45 minutes to reach the venue.</p>
+                              <p><strong>Bus Route:</strong> You can take a KSRTC or private transport bus down to Ernakulam (Vytilla Hub or Ernakulam Jetty).</p>
+                              <small><strong>Ferry Option:</strong> From Ernakulam Jetty, taking the public ferry to Mattancherry or Fort Kochi is often faster and more scenic than sitting through city road traffic. The space is a short auto-rickshaw ride or walk from the Mattancherry jetty.</small>
+                            </div>
+                          </div>
+                          <div className="transport-item">
+                            <div className="transport-icon"><img src="/icons/train.svg" alt="train" style={{ width: '40px' }} /></div>
+                            <div className="transport-info">
+                              <h3>By Train</h3>
+                              <p><strong>Nearest Major Stations:</strong> Ernakulam Junction (ERS) (South) or Ernakulam Town (ERN) (North).</p>
+                              <small><strong>Connection:</strong> Once you deboard at Ernakulam, you can take a local city bus directly to Mattancherry/Kappalandimukku, or take an auto-rickshaw to the Ernakulam Jetty to catch the ferry across to Fort Kochi.</small>
+                            </div>
+                          </div>
+                          <div className="transport-item">
+                            <div className="transport-icon"><img src="/icons/car.svg" alt="car" style={{ width: '40px' }} /></div>
+                            <div className="transport-info">
+                              <h3>Car / Ride Share</h3>
+                              <p><strong>Route:</strong> If you are driving down from Thrissur, follow the National Highway 544 (NH544) toward Ernakulam, then navigate through the Vikrant Bhairon Road or Thoppumpady bridge into Fort Kochi/Mattancherry.</p>
+                              <small><strong>Location Hint:</strong> The space is situated on Lalan Road near the Kappalandimukku junction. Keep in mind that parking in the historic streets of Mattancherry can occasionally be tight.</small>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </React.Fragment>
+                );
+              })
             )}
-
-
-
-            <div className="venue-card transport-section">
-              <h2 className="text-3d">Transport</h2>
-              <div className="transport-list">
-                <div className="transport-item">
-                  <div className="transport-icon"><img src="/icons/location.svg" alt="metro" style={{ width: '40px' }} /></div>
-                  <div className="transport-info">
-                    <h3>Metro (Line 5)</h3>
-                    <p>From <strong>Central Station</strong> to <strong>Innovation Park</strong></p>
-                    <small>Runs every 10 minutes. 5-minute walk to venue.</small>
-                  </div>
-                </div>
-                <div className="transport-item">
-                  <div className="transport-icon"><img src="/icons/users.svg" alt="bus" style={{ width: '40px' }} /></div>
-                  <div className="transport-info">
-                    <h3>Shuttle Bus</h3>
-                    <p>From <strong>City Plaza</strong> to <strong>Venue Entrance</strong></p>
-                    <small>Complimentary for Starlet attendees. Hourly service.</small>
-                  </div>
-                </div>
-                <div className="transport-item">
-                  <div className="transport-icon"><img src="/icons/location.svg" alt="car" style={{ width: '40px' }} /></div>
-                  <div className="transport-info">
-                    <h3>Car / Ride Share</h3>
-                    <p>Drop-off at <strong>Main Gate</strong></p>
-                    <small>Free parking available for the first 100 cars.</small>
-                  </div>
-                </div>
-              </div>
-            </div>
           </div>
 
           <div onClick={() => setActiveView('landing')} style={{ marginTop: '3rem', cursor: 'pointer', color: 'var(--blue-shadow)', textAlign: 'center', width: '100%' }}>← Back to Home</div>

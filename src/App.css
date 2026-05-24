@@ -3631,6 +3631,7 @@ html.menu-open {
     background-image: radial-gradient(var(--grid-color) 2px, transparent 2px);
     background-size: 20px 20px;
     scroll-snap-align: center;
+    overflow: hidden;
 }
 
 .venue-img-placeholder:hover {
