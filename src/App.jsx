@@ -212,6 +212,7 @@ function App() {
   const requestRef = useRef();
   const partnersRef = useRef(null);
   const prizesRef = useRef(null);
+  const mentorGridRef = useRef(null);
 
 
   useEffect(() => {
@@ -1997,23 +1998,52 @@ function App() {
                   ) : section.type === 'mentors' ? (
                     <div className="section-content">
                       <h2 className="text-3d" style={{ fontSize: '2.5rem' }}>{section.title}</h2>
-                      <div className="mentor-grid">
-                        {mentors.length === 0 ? (
-                          <p style={{ color: '#fff', textAlign: 'center', gridColumn: '1 / -1' }}>Mentors are being onboarded. Check back soon!</p>
-                        ) : (
-                          mentors.map(mentor => (
-                            <div key={mentor.id} className="mentor-card" onClick={() => setSelectedMentor(mentor)}>
-                              <div className="mentor-photo-wrapper">
-                                <img src={mentor.avatar_url || "icons/user-profile.svg"} alt="mentor" loading="lazy" />
+                      <div className="mentor-carousel-wrapper">
+                        {mentors.length > 0 && (
+                          <button 
+                            className="mentor-nav-button prev" 
+                            onClick={() => {
+                              if (mentorGridRef.current) {
+                                mentorGridRef.current.scrollBy({ left: -368, behavior: 'smooth' });
+                              }
+                            }}
+                            aria-label="Previous mentors"
+                          >
+                            ←
+                          </button>
+                        )}
+                        <div className="mentor-grid" ref={mentorGridRef}>
+                          {mentors.length === 0 ? (
+                            <p style={{ color: '#fff', textAlign: 'center', gridColumn: '1 / -1' }}>Mentors are being onboarded. Check back soon!</p>
+                          ) : (
+                            mentors.map(mentor => (
+                              <div key={mentor.id} className="mentor-card" onClick={() => setSelectedMentor(mentor)}>
+                                <div className="mentor-photo-wrapper">
+                                  <img src={mentor.avatar_url || "icons/user-profile.svg"} alt="mentor" loading="lazy" />
+                                </div>
+                                <h3>{mentor.full_name}</h3>
+                                <p className="mentor-role">{mentor.role_title}</p>
+                                <p className="mentor-company">{mentor.company}</p>
                               </div>
-                              <h3>{mentor.full_name}</h3>
-                              <p className="mentor-role">{mentor.role_title}</p>
-                              <p className="mentor-company">{mentor.company}</p>
-                            </div>
-                          ))
+                            ))
+                          )}
+                        </div>
+                        {mentors.length > 0 && (
+                          <button 
+                            className="mentor-nav-button next" 
+                            onClick={() => {
+                              if (mentorGridRef.current) {
+                                mentorGridRef.current.scrollBy({ left: 368, behavior: 'smooth' });
+                              }
+                            }}
+                            aria-label="Next mentors"
+                          >
+                            →
+                          </button>
                         )}
                       </div>
                     </div>
+
                   ) : (
                     <div className="section-content">
                       <h2 className="text-3d" style={{ fontSize: '2.5rem' }}>{section.title}</h2>

@@ -2922,6 +2922,68 @@ html.menu-open {
     border-radius: 10px;
 }
 
+.mentor-carousel-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+.mentor-nav-button {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: var(--cream-bg);
+    border: 3px solid var(--text-navy);
+    color: var(--text-navy);
+    font-size: 1.5rem;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    box-shadow: 4px 4px 0px var(--text-navy);
+}
+
+.mentor-nav-button:hover {
+    background: var(--pink-primary);
+    color: var(--text-navy);
+    transform: translateY(-50%) scale(1.1);
+    box-shadow: 6px 6px 0px var(--text-navy);
+}
+
+.mentor-nav-button:active {
+    transform: translateY(-50%) scale(0.95);
+    box-shadow: 2px 2px 0px var(--text-navy);
+}
+
+.mentor-nav-button.prev {
+    left: 2%;
+}
+
+.mentor-nav-button.next {
+    right: 2%;
+}
+
+@media (max-width: 768px) {
+    .mentor-nav-button {
+        width: 40px;
+        height: 40px;
+        font-size: 1.2rem;
+        border: 2px solid var(--text-navy);
+        box-shadow: 3px 3px 0px var(--text-navy);
+    }
+    .mentor-nav-button.prev {
+        left: 1%;
+    }
+    .mentor-nav-button.next {
+        right: 1%;
+    }
+}
+
 .mentor-card {
     flex: 0 0 320px;
     /* Fixed width for horizontal flow */
