@@ -452,13 +452,15 @@ function App() {
   const [allUsers, setAllUsers] = useState([]);
 
   useEffect(() => {
+    const channels = [];
+
     if (isLoggedIn && (user.role === 'mentor' || (user.role === 'admin' && adminActiveTab === 'mentor'))) {
       fetchMentorRequests();
       // Realtime listener for new requests
       const channel = supabase
         .channel('schema-db-changes')
         .on('postgres_changes',
-          { event: 'INSERT', schema: 'public', table: 'mentor_requests', filter: `mentor_id=eq.${session.user.id}` },
+          { event: 'INSERT', schema: 'public', table: 'mentor_requests', filter: `mentor_id=eq.${session?.user?.id}` },
           async (payload) => {
             // Fetch rich details for the alert
             const { data: richData } = await supabase
@@ -477,7 +479,7 @@ function App() {
           }
         )
         .subscribe();
-      return () => supabase.removeChannel(channel);
+      channels.push(channel);
     }
 
     if (isLoggedIn && user.role === 'admin') {
@@ -486,8 +488,19 @@ function App() {
       fetchAuditLogs();
       fetchSubmissions();
       fetchMentorRequests();
+
+      const adminChannel = supabase.channel('admin-updates')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => {
+          fetchAllUsers();
+        })
+        .subscribe();
+      channels.push(adminChannel);
     }
-  }, [isLoggedIn, user.role]);
+
+    return () => {
+      channels.forEach(ch => supabase.removeChannel(ch));
+    };
+  }, [isLoggedIn, user.role, adminActiveTab, session?.user?.id]);
 
   useEffect(() => {
     if (isLoggedIn && user.role === 'admin') {
@@ -2023,21 +2036,36 @@ function App() {
                     </div>
                   ) : section.type === 'mentors' ? (
                     <div className="section-content">
-                      <h2 className="text-3d" style={{ fontSize: '2.5rem' }}>{section.title}</h2>
-                      <div className="mentor-carousel-wrapper">
+                      <div className="mentors-section-header">
+                        <h2 className="text-3d" style={{ fontSize: '2.5rem' }}>{section.title}</h2>
                         {mentors.length > 0 && (
-                          <button 
-                            className="mentor-nav-button prev" 
-                            onClick={() => {
-                              if (mentorGridRef.current) {
-                                mentorGridRef.current.scrollBy({ left: -368, behavior: 'smooth' });
-                              }
-                            }}
-                            aria-label="Previous mentors"
-                          >
-                            ←
-                          </button>
+                          <div className="mentor-header-nav">
+                            <button 
+                              className="mentor-nav-button prev" 
+                              onClick={() => {
+                                if (mentorGridRef.current) {
+                                  mentorGridRef.current.scrollBy({ left: -368, behavior: 'smooth' });
+                                }
+                              }}
+                              aria-label="Previous mentors"
+                            >
+                              ←
+                            </button>
+                            <button 
+                              className="mentor-nav-button next" 
+                              onClick={() => {
+                                if (mentorGridRef.current) {
+                                  mentorGridRef.current.scrollBy({ left: 368, behavior: 'smooth' });
+                                }
+                              }}
+                              aria-label="Next mentors"
+                            >
+                              →
+                            </button>
+                          </div>
                         )}
+                      </div>
+                      <div className="mentor-carousel-wrapper">
                         <div className="mentor-grid" ref={mentorGridRef}>
                           {mentors.length === 0 ? (
                             <p style={{ color: '#fff', textAlign: 'center', gridColumn: '1 / -1' }}>Mentors are being onboarded. Check back soon!</p>
@@ -2054,19 +2082,6 @@ function App() {
                             ))
                           )}
                         </div>
-                        {mentors.length > 0 && (
-                          <button 
-                            className="mentor-nav-button next" 
-                            onClick={() => {
-                              if (mentorGridRef.current) {
-                                mentorGridRef.current.scrollBy({ left: 368, behavior: 'smooth' });
-                              }
-                            }}
-                            aria-label="Next mentors"
-                          >
-                            →
-                          </button>
-                        )}
                       </div>
                     </div>
 
@@ -3690,25 +3705,31 @@ function App() {
                 </div>
                 <h3 style={{ fontSize: '1.6rem', marginBottom: '0.8rem', fontFamily: "'Fredoka One', cursive", color: 'var(--text-navy)', lineHeight: '1.2' }}>{selectedMentor.role_title}</h3>
                 <span style={{ background: 'var(--bg-cream)', border: '2px solid var(--text-navy)', borderRadius: '15px', padding: '0.4rem 1rem', fontSize: '0.95rem', fontWeight: '900', color: 'var(--text-navy)', marginTop: '0.5rem', display: 'inline-block' }}>🏢 {selectedMentor.company}</span>
-
-                {/* Social links */}
-                <div className="mentor-social-links" style={{ marginTop: '1rem', display: 'flex', gap: '0.6rem', alignItems: 'center' }}>
-                  {selectedMentor.github_url && (
-                    <a href={selectedMentor.github_url} target="_blank" rel="noreferrer" title="GitHub" style={{ display: 'inline-flex' }}>
-                      <img src="icons/github.svg" alt="github" style={{ width: '26px', height: '26px' }} />
-                    </a>
-                  )}
-                  {selectedMentor.linkedin_url && (
-                    <a href={selectedMentor.linkedin_url} target="_blank" rel="noreferrer" title="LinkedIn" style={{ display: 'inline-flex' }}>
-                      <img src="icons/linkedin.svg" alt="linkedin" style={{ width: '26px', height: '26px' }} />
-                    </a>
-                  )}
-                  {selectedMentor.twitter_url && (
-                    <a href={selectedMentor.twitter_url} target="_blank" rel="noreferrer" title="Twitter" style={{ display: 'inline-flex' }}>
-                      <img src="icons/twitter.svg" alt="twitter" style={{ width: '26px', height: '26px' }} />
-                    </a>
-                  )}
-                </div>
+                
+                {(() => {
+                  const profile = allUsers.find(u => u.id === selectedMentor.profile_id) || {};
+                  const socials = profile.socials || selectedMentor.socials;
+                  if (!socials || (!socials.github && !socials.linkedin && !socials.twitter)) return null;
+                  return (
+                    <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem', justifyContent: 'center' }}>
+                      {socials.github && (
+                        <a href={socials.github.startsWith('http') ? socials.github : `https://${socials.github}`} target="_blank" rel="noopener noreferrer" style={{ width: '45px', height: '45px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-cream)', border: '3px solid var(--text-navy)', borderRadius: '50%', transition: 'all 0.2s', boxShadow: '3px 3px 0px var(--text-navy)' }}>
+                          <img src="icons/github.svg" alt="GitHub" style={{ width: '22px' }} />
+                        </a>
+                      )}
+                      {socials.linkedin && (
+                        <a href={socials.linkedin.startsWith('http') ? socials.linkedin : `https://${socials.linkedin}`} target="_blank" rel="noopener noreferrer" style={{ width: '45px', height: '45px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-cream)', border: '3px solid var(--text-navy)', borderRadius: '50%', transition: 'all 0.2s', boxShadow: '3px 3px 0px var(--text-navy)' }}>
+                          <img src="icons/linkedin.svg" alt="LinkedIn" style={{ width: '22px' }} />
+                        </a>
+                      )}
+                      {socials.twitter && (
+                        <a href={socials.twitter.startsWith('http') ? socials.twitter : `https://${socials.twitter}`} target="_blank" rel="noopener noreferrer" style={{ width: '45px', height: '45px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-cream)', border: '3px solid var(--text-navy)', borderRadius: '50%', transition: 'all 0.2s', boxShadow: '3px 3px 0px var(--text-navy)' }}>
+                          <img src="icons/twitter.svg" alt="Twitter" style={{ width: '22px' }} />
+                        </a>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
 
               {/* Right Column: Info & Skills Cards */}
