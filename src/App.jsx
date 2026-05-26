@@ -113,6 +113,7 @@ function App() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showSplash, setShowSplash] = useState(true);
   const [fadeOut, setFadeOut] = useState(false);
+  const [loadingProgress, setLoadingProgress] = useState(0);
   const [faqLimit, setFaqLimit] = useState(3);
   const [visibleSections, setVisibleSections] = useState(new Set());
 
@@ -237,9 +238,56 @@ function App() {
     };
     window.addEventListener('scroll', handleScroll);
 
-    // Splash Screen Timer
-    const fadeTimer = setTimeout(() => setFadeOut(true), 3000);
-    const removeTimer = setTimeout(() => setShowSplash(false), 3800);
+    // Splash Screen Dynamic Loader
+    const assets = [
+      'brand/Logo.png',
+      'brand/Mind Empowered.gif',
+      'brand/Starlet.mp4',
+      'icons/user-profile.svg'
+    ];
+    let loaded = 0;
+    
+    // Make sure we wait at least 2 seconds so the splash screen doesn't just flash instantly
+    const minTimePromise = new Promise(resolve => setTimeout(resolve, 2000));
+    let isComplete = false;
+
+    const checkComplete = () => {
+      if (loaded >= assets.length && !isComplete) {
+        isComplete = true;
+        minTimePromise.then(() => {
+          setLoadingProgress(100);
+          setTimeout(() => setFadeOut(true), 500);
+          setTimeout(() => setShowSplash(false), 1200);
+        });
+      }
+    };
+
+    assets.forEach(src => {
+      const isVideo = src.endsWith('.mp4');
+      const element = isVideo ? document.createElement('video') : new Image();
+      
+      const onload = () => {
+        loaded++;
+        setLoadingProgress(prev => Math.max(prev, Math.min(90, (loaded / assets.length) * 100)));
+        checkComplete();
+      };
+      
+      if (isVideo) {
+        element.onloadeddata = onload;
+        element.onerror = onload; // continue even if error
+        element.src = src;
+      } else {
+        element.onload = onload;
+        element.onerror = onload;
+        element.src = src;
+      }
+    });
+
+    // Fallback timer just in case assets fail to load or take too long
+    const fallbackTimer = setTimeout(() => {
+      loaded = assets.length;
+      checkComplete();
+    }, 6000);
 
     const handleGlobalClick = (e) => {
       const target = e.target.closest('button, a, .join-btn, .login-btn, .nav-link, .logo-circle, .mentor-card, .faq-item');
@@ -253,8 +301,7 @@ function App() {
     return () => {
       window.removeEventListener('scroll', handleScroll);
       window.removeEventListener('click', handleGlobalClick);
-      clearTimeout(fadeTimer);
-      clearTimeout(removeTimer);
+      clearTimeout(fallbackTimer);
     };
   }, [isSoundEnabled]);
 
@@ -1505,7 +1552,7 @@ function App() {
           </div>
           <div className="splash-text">INITIALIZING QUANTUM LINK...</div>
           <div className="splash-loading-container">
-            <div className="splash-loading-bar" style={{ animationDuration: '1s' }}></div>
+            <div className="splash-loading-bar" style={{ width: `${loadingProgress}%`, transition: 'width 0.3s ease-out', animation: 'none' }}></div>
           </div>
         </div>
       </div>
@@ -1580,7 +1627,7 @@ function App() {
             </div>
             <h1 className="text-3d splash-title">STARLET 5.0</h1>
             <div className="splash-loading-container">
-              <div className="splash-loading-bar"></div>
+              <div className="splash-loading-bar" style={{ width: `${loadingProgress}%`, transition: 'width 0.3s ease-out', animation: 'none' }}></div>
             </div>
             <p className="handwritten splash-text">Igniting your creativity...</p>
           </div>
