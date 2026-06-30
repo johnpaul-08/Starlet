@@ -4313,66 +4313,29 @@ function App() {
             <div className="certificate-container-live" id="certificate-render" style={{
               width: '1123px',
               height: '794px',
-              backgroundColor: '#fffdf5',
-              backgroundImage: 'linear-gradient(rgba(0,0,0,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.05) 1px, transparent 1px)',
-              backgroundSize: '30px 30px',
-              border: '8px solid #001f3f',
-              borderRadius: '40px',
+              backgroundImage: "url('certificate/particpation.png')",
+              backgroundSize: '100% 100%',
+              backgroundRepeat: 'no-repeat',
               position: 'relative',
-              boxShadow: '25px 25px 0px #ff4d94',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              padding: '60px 80px',
               boxSizing: 'border-box',
-              fontFamily: "'Outfit', sans-serif",
               overflow: 'hidden'
             }}>
-              {/* Watermark */}
-              <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%) rotate(-15deg)', fontFamily: "'Fredoka One', cursive", fontSize: '11rem', color: 'rgba(0, 31, 63, 0.03)', whiteSpace: 'nowrap', pointerEvents: 'none', zIndex: 1, letterSpacing: '4rem' }}>STARLET</div>
-
-              {/* Decorative Star */}
-              <div style={{ position: 'absolute', top: '30px', left: '30px', width: '60px', height: '60px', backgroundColor: '#ffd700', clipPath: 'polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%)', border: '3px solid #001f3f', transform: 'rotate(-15deg)', zIndex: 2 }}></div>
-
-              {/* Header Branding */}
-              <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px', zIndex: 2 }}>
-                <div style={{ width: '85px', height: '85px', borderRadius: '15px', border: '3px solid #001f3f', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '5px 5px 0px #ff4d94', overflow: 'hidden' }}>
-                  <img src="brand/Logo.png" alt="Starlet" style={{ width: '85%', height: 'auto' }} />
-                </div>
-                <div style={{ width: '85px', height: '85px', borderRadius: '15px', border: '3px solid #001f3f', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '5px 5px 0px #ff4d94', overflow: 'hidden' }}>
-                  <img src="brand/Mind Empowered.jpeg" alt="ME" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                </div>
-              </div>
-
-              {/* Title Section */}
-              <div style={{ textAlign: 'center', zIndex: 2 }}>
-                <h1 style={{ fontFamily: "'Fredoka One', cursive", fontSize: '5.5rem', color: '#001f3f', margin: 0, textTransform: 'uppercase', textShadow: '4px 4px 0px #ffd700' }}>Certificate</h1>
-                <p style={{ fontSize: '1.2rem', fontWeight: 800, color: '#ff4d94', letterSpacing: '15px', marginTop: '-5px', textTransform: 'uppercase' }}>OF EXCELLENCE</p>
-              </div>
-
-              {/* Recipient Details */}
-              <div style={{ marginTop: '20px', fontSize: '1.2rem', color: '#001f3f', fontWeight: 500, letterSpacing: '2px', textTransform: 'uppercase', zIndex: 2 }}>
-                This award is officially presented to
-              </div>
-
-              <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: '4rem', fontWeight: 900, color: '#001f3f', margin: '5px 0', padding: '10px 40px', borderBottom: '4px solid #ffd700', zIndex: 2, minWidth: '500px', minHeight: '60px' }}>
+              <div style={{
+                position: 'absolute',
+                top: '355px',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                fontFamily: "'Outfit', sans-serif",
+                fontSize: '3.2rem',
+                fontWeight: 900,
+                color: '#4a1210',
+                textAlign: 'center',
+                width: '80%',
+                padding: 0,
+                margin: 0,
+                zIndex: 10
+              }}>
                 {user.name || ''}
-              </div>
-
-              {/* Achievement Body */}
-              <div style={{ maxWidth: '850px', margin: '15px auto 40px auto', textAlign: 'center', fontSize: '1.3rem', lineHeight: '1.8', color: '#444', fontWeight: 400, zIndex: 2 }}>
-                Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Your contribution to <strong style={{ color: '#ff4d94', fontWeight: 800 }}>Starlet 5.0</strong> has left an indelible mark on the galaxy of innovators.
-              </div>
-
-              {/* Footer Row */}
-              <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 'auto', paddingBottom: '15px', paddingLeft: '80px', paddingRight: '80px', boxSizing: 'border-box', zIndex: 2 }}>
-                <div style={{ width: '350px', textAlign: 'center' }}>
-                  <div style={{ height: '4px', background: '#001f3f', width: '280px', margin: '0 auto 15px auto', borderRadius: '2px' }}></div>
-                  <strong style={{ fontFamily: "'Outfit', sans-serif", fontSize: '1.4rem', color: '#001f3f', display: 'block', fontWeight: 900, letterSpacing: '1px', lineHeight: 1 }}>MIND EMPOWERED</strong>
-                </div>
-                <div style={{ fontSize: '0.7rem', color: 'rgba(0, 31, 63, 0.4)', textTransform: 'uppercase', letterSpacing: '1px', lineHeight: 1 }}>
-                  ISSUE DATE: JULY 11, 2024
-                </div>
               </div>
             </div>
           </div>
