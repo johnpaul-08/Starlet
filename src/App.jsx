@@ -4322,12 +4322,13 @@ function App() {
             }}>
               <div style={{
                 position: 'absolute',
-                top: '355px',
+                top: '345px',
                 left: '50%',
                 transform: 'translateX(-50%)',
-                fontFamily: "'Outfit', sans-serif",
-                fontSize: '3.2rem',
-                fontWeight: 900,
+                fontFamily: "'Playfair Display', serif",
+                fontStyle: 'italic',
+                fontSize: '3.5rem',
+                fontWeight: 700,
                 color: '#4a1210',
                 textAlign: 'center',
                 width: '80%',
