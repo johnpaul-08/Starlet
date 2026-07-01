@@ -121,9 +121,9 @@ const judgesData = [
     id: 2,
     name: "Gayathri Manikutty",
     role: "Judge",
-    title: "AMMACHI Labs, Amrita Vishwa Vidyapeetham, Amritapuri",
+    title: "Senior Researcher, AMMACHI Labs, Amrita Vishwa Vidyapeetham",
     image: "Judge/Gayathri Manikutty.png",
-    affiliation: "Amrita University"
+    affiliation: "Amrita Vishwa Vidyapeetham"
   }
 ];
 
@@ -278,6 +278,174 @@ function App() {
     ? JSON.stringify(user) !== JSON.stringify(originalUser.current)
     : false;
   const [isSoundEnabled, setIsSoundEnabled] = useState(true);
+  const [isA11yOpen, setIsA11yOpen] = useState(false);
+  const a11yRef = useRef(null);
+  const [a11ySettings, setA11ySettings] = useState(() => {
+    try {
+      const saved = localStorage.getItem('starlet_a11y_settings');
+      if (saved) {
+        return JSON.parse(saved);
+      }
+    } catch (e) {
+      console.warn('Failed to parse a11y settings', e);
+    }
+    return {
+      contrast: 'default',
+      fontSize: 100,
+      reducedMotion: false,
+      dyslexiaFont: false,
+      highlightLinks: false,
+      bigCursor: false,
+      hideImages: false,
+      muteSound: false,
+      readingMask: false,
+      textToSpeech: false
+    };
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('starlet_a11y_settings', JSON.stringify(a11ySettings));
+    } catch (e) {
+      console.warn('Failed to save a11y settings', e);
+    }
+
+    const html = document.documentElement;
+    
+    // 1. Handle Contrast
+    if (a11ySettings.contrast === 'high-contrast') {
+      html.classList.add('a11y-high-contrast');
+    } else {
+      html.classList.remove('a11y-high-contrast');
+    }
+
+    // 2. Handle Sizing
+    html.style.fontSize = `${a11ySettings.fontSize}%`;
+
+    // 3. Handle Reduced Motion
+    if (a11ySettings.reducedMotion) {
+      html.classList.add('a11y-reduced-motion');
+    } else {
+      html.classList.remove('a11y-reduced-motion');
+    }
+
+    // 4. Handle Dyslexia Font
+    if (a11ySettings.dyslexiaFont) {
+      html.classList.add('a11y-dyslexia-font');
+    } else {
+      html.classList.remove('a11y-dyslexia-font');
+    }
+
+    // 5. Handle Highlight Links
+    if (a11ySettings.highlightLinks) {
+      html.classList.add('a11y-highlight-links');
+    } else {
+      html.classList.remove('a11y-highlight-links');
+    }
+
+    // 6. Handle Big Cursor
+    if (a11ySettings.bigCursor) {
+      html.classList.add('a11y-big-cursor');
+    } else {
+      html.classList.remove('a11y-big-cursor');
+    }
+
+    // 7. Handle Hide Images
+    if (a11ySettings.hideImages) {
+      html.classList.add('a11y-hide-images');
+    } else {
+      html.classList.remove('a11y-hide-images');
+    }
+  }, [a11ySettings]);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (a11yRef.current && !a11yRef.current.contains(event.target)) {
+        setIsA11yOpen(false);
+      }
+    };
+    if (isA11yOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('touchstart', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, [isA11yOpen]);
+
+  const [maskY, setMaskY] = useState(300);
+
+  useEffect(() => {
+    if (!a11ySettings.readingMask) return;
+    const handleMouseMove = (e) => {
+      setMaskY(e.clientY);
+    };
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+    };
+  }, [a11ySettings.readingMask]);
+
+  useEffect(() => {
+    if (!a11ySettings.textToSpeech) {
+      window.speechSynthesis?.cancel();
+      return;
+    }
+
+    const handleSpeechTrigger = (e) => {
+      const target = e.target;
+      const isWidget = target.closest('.a11y-widget-container') || target.closest('.a11y-widget-btn');
+      if (isWidget) return;
+
+      const tag = target.tagName.toLowerCase();
+      const isTextTag = ['p', 'span', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'li', 'strong', 'em', 'small', 'td', 'th'].includes(tag);
+      
+      if (isTextTag && target.innerText) {
+        window.speechSynthesis?.cancel();
+        
+        const utterance = new SpeechSynthesisUtterance(target.innerText);
+        
+        // Adjust pitch and rate to sound like a young girl
+        utterance.pitch = 1.45;
+        utterance.rate = 1.05;
+        
+        if (window.speechSynthesis) {
+          const voices = window.speechSynthesis.getVoices();
+          const youngFemaleVoice = voices.find(voice => 
+            voice.name.toLowerCase().includes('samantha') ||
+            voice.name.toLowerCase().includes('zira') ||
+            voice.name.toLowerCase().includes('google us english') ||
+            voice.name.toLowerCase().includes('hazel') ||
+            voice.name.toLowerCase().includes('female') ||
+            voice.name.toLowerCase().includes('girl') ||
+            voice.name.toLowerCase().includes('elsa') ||
+            voice.name.toLowerCase().includes('anna')
+          );
+          if (youngFemaleVoice) {
+            utterance.voice = youngFemaleVoice;
+          }
+        }
+        
+        target.classList.add('a11y-speaking-active');
+        utterance.onend = () => {
+          target.classList.remove('a11y-speaking-active');
+        };
+        utterance.onerror = () => {
+          target.classList.remove('a11y-speaking-active');
+        };
+        
+        window.speechSynthesis?.speak(utterance);
+      }
+    };
+
+    document.addEventListener('click', handleSpeechTrigger);
+    return () => {
+      document.removeEventListener('click', handleSpeechTrigger);
+      window.speechSynthesis?.cancel();
+    };
+  }, [a11ySettings.textToSpeech]);
+
   const [showAboutPopup, setShowAboutPopup] = useState(false);
   const [showAikyamPopup, setShowAikyamPopup] = useState(false);
   const [showAdiPopup, setShowAdiPopup] = useState(false);
@@ -289,7 +457,7 @@ function App() {
   const [showWECPopup, setShowWECPopup] = useState(false);
 
   const playClickSound = () => {
-    if (!isSoundEnabled) return;
+    if (!isSoundEnabled || a11ySettings.muteSound) return;
     try {
       const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       const oscillator = audioCtx.createOscillator();
@@ -311,7 +479,7 @@ function App() {
   };
 
   const playNotificationSound = () => {
-    if (!isSoundEnabled) return;
+    if (!isSoundEnabled || a11ySettings.muteSound) return;
     try {
       const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       
@@ -343,7 +511,7 @@ function App() {
   };
 
   const playIssueAlertSound = () => {
-    if (!isSoundEnabled) return;
+    if (!isSoundEnabled || a11ySettings.muteSound) return;
     try {
       const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       
@@ -2326,6 +2494,7 @@ function App() {
 
   return (
     <div className="App">
+      <a href="#main-content-anchor" className="skip-to-content-link">Skip to Main Content</a>
 
 
       {/* Registration Popup */}
@@ -2579,7 +2748,7 @@ function App() {
 
       {activeView === 'landing' ? (
         <>
-          <main>
+          <main id="main-content-anchor">
             <section className="hero">
               <div className="badge-main">
                 MIND EMPOWERED PRESENTS
@@ -2630,6 +2799,7 @@ function App() {
                             {/* Manual Day Selection Tabs */}
                             <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', zIndex: 10 }}>
                               <button
+                                className={`schedule-day-btn ${activeScheduleDay === 1 ? 'active' : ''}`}
                                 onClick={() => setActiveScheduleDay(1)}
                                 style={{
                                   padding: '8px 20px',
@@ -2651,6 +2821,7 @@ function App() {
                                 Day 1 (Sat, July 11)
                               </button>
                               <button
+                                className={`schedule-day-btn ${activeScheduleDay === 2 ? 'active' : ''}`}
                                 onClick={() => setActiveScheduleDay(2)}
                                 style={{
                                   padding: '8px 20px',
@@ -6095,6 +6266,322 @@ function App() {
           </div>
         </div>
       )}
+
+      {a11ySettings.readingMask && (
+        <>
+          <div 
+            className="a11y-reading-mask-top"
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              width: '100vw',
+              height: `${maskY - 45}px`,
+              backgroundColor: 'rgba(0, 0, 0, 0.55)',
+              pointerEvents: 'none',
+              zIndex: 999999
+            }}
+          />
+          <div 
+            className="a11y-reading-mask-ruler"
+            style={{
+              position: 'fixed',
+              top: `${maskY - 45}px`,
+              left: 0,
+              width: '100vw',
+              height: '90px',
+              borderTop: '3px solid var(--pink-primary)',
+              borderBottom: '3px solid var(--pink-primary)',
+              pointerEvents: 'none',
+              zIndex: 999999,
+              backgroundColor: 'transparent'
+            }}
+          />
+          <div 
+            className="a11y-reading-mask-bottom"
+            style={{
+              position: 'fixed',
+              top: `${maskY + 45}px`,
+              left: 0,
+              width: '100vw',
+              bottom: 0,
+              backgroundColor: 'rgba(0, 0, 0, 0.55)',
+              pointerEvents: 'none',
+              zIndex: 999999
+            }}
+          />
+        </>
+      )}
+
+      {/* Floating Accessibility Widget */}
+      <div className="a11y-widget-container" ref={a11yRef}>
+        <button
+          className="a11y-widget-btn"
+          onClick={() => setIsA11yOpen(!isA11yOpen)}
+          aria-expanded={isA11yOpen}
+          aria-haspopup="dialog"
+          aria-label="Accessibility Settings Menu"
+          title="Accessibility Menu"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="28"
+            height="28"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <circle cx="12" cy="5" r="2" />
+            <path d="m9 22 3-6 3 6" />
+            <path d="m6 8 6 2 6-2" />
+            <path d="M12 10v6" />
+          </svg>
+        </button>
+
+        {isA11yOpen && (
+          <div className="a11y-widget-panel" role="dialog" aria-modal="true" aria-labelledby="a11y-panel-title">
+            <div className="a11y-widget-header">
+              <h3 id="a11y-panel-title">Accessibility Tools</h3>
+              <button
+                className="a11y-widget-close"
+                onClick={() => setIsA11yOpen(false)}
+                aria-label="Close accessibility tools panel"
+              >
+                &times;
+              </button>
+            </div>
+
+            <div className="a11y-widget-options">
+              {/* High Contrast Toggle */}
+              <div className="a11y-option-item">
+                <span className="a11y-option-label">High Contrast</span>
+                <label className="a11y-switch">
+                  <input
+                    type="checkbox"
+                    checked={a11ySettings.contrast === 'high-contrast'}
+                    onChange={(e) =>
+                      setA11ySettings((prev) => ({
+                        ...prev,
+                        contrast: e.target.checked ? 'high-contrast' : 'default'
+                      }))
+                    }
+                    aria-label="Toggle High Contrast Mode"
+                  />
+                  <span className="a11y-slider"></span>
+                </label>
+              </div>
+
+              {/* Sizing controls */}
+              <div className="a11y-option-item">
+                <span className="a11y-option-label">Font Sizing</span>
+                <div className="a11y-font-size-control">
+                  <button
+                    className="a11y-font-size-btn"
+                    onClick={() =>
+                      setA11ySettings((prev) => ({
+                        ...prev,
+                        fontSize: Math.max(80, prev.fontSize - 10)
+                      }))
+                    }
+                    aria-label="Decrease Font Size"
+                  >
+                    A-
+                  </button>
+                  <span className="a11y-font-size-value">{a11ySettings.fontSize}%</span>
+                  <button
+                    className="a11y-font-size-btn"
+                    onClick={() =>
+                      setA11ySettings((prev) => ({
+                        ...prev,
+                        fontSize: Math.min(150, prev.fontSize + 10)
+                      }))
+                    }
+                    aria-label="Increase Font Size"
+                  >
+                    A+
+                  </button>
+                </div>
+              </div>
+
+              {/* Dyslexia Font Toggle */}
+              <div className="a11y-option-item">
+                <span className="a11y-option-label">Dyslexia Font</span>
+                <label className="a11y-switch">
+                  <input
+                    type="checkbox"
+                    checked={a11ySettings.dyslexiaFont}
+                    onChange={(e) =>
+                      setA11ySettings((prev) => ({
+                        ...prev,
+                        dyslexiaFont: e.target.checked
+                      }))
+                    }
+                    aria-label="Toggle Dyslexia-Friendly Typography"
+                  />
+                  <span className="a11y-slider"></span>
+                </label>
+              </div>
+
+              {/* Reduced Motion Toggle */}
+              <div className="a11y-option-item">
+                <span className="a11y-option-label">Reduced Motion</span>
+                <label className="a11y-switch">
+                  <input
+                    type="checkbox"
+                    checked={a11ySettings.reducedMotion}
+                    onChange={(e) =>
+                      setA11ySettings((prev) => ({
+                        ...prev,
+                        reducedMotion: e.target.checked
+                      }))
+                    }
+                    aria-label="Toggle Animation Motion Reductions"
+                  />
+                  <span className="a11y-slider"></span>
+                </label>
+              </div>
+
+              {/* Highlight Links */}
+              <div className="a11y-option-item">
+                <span className="a11y-option-label">Highlight Links</span>
+                <label className="a11y-switch">
+                  <input
+                    type="checkbox"
+                    checked={a11ySettings.highlightLinks}
+                    onChange={(e) =>
+                      setA11ySettings((prev) => ({
+                        ...prev,
+                        highlightLinks: e.target.checked
+                      }))
+                    }
+                    aria-label="Toggle Link and Button Outlines"
+                  />
+                  <span className="a11y-slider"></span>
+                </label>
+              </div>
+
+              {/* Big Cursor */}
+              <div className="a11y-option-item">
+                <span className="a11y-option-label">Big Cursor</span>
+                <label className="a11y-switch">
+                  <input
+                    type="checkbox"
+                    checked={a11ySettings.bigCursor}
+                    onChange={(e) =>
+                      setA11ySettings((prev) => ({
+                        ...prev,
+                        bigCursor: e.target.checked
+                      }))
+                    }
+                    aria-label="Toggle Enlarged Mouse Pointer cursor"
+                  />
+                  <span className="a11y-slider"></span>
+                </label>
+              </div>
+
+              {/* Hide Images */}
+              <div className="a11y-option-item">
+                <span className="a11y-option-label">Hide Images</span>
+                <label className="a11y-switch">
+                  <input
+                    type="checkbox"
+                    checked={a11ySettings.hideImages}
+                    onChange={(e) =>
+                      setA11ySettings((prev) => ({
+                        ...prev,
+                        hideImages: e.target.checked
+                      }))
+                    }
+                    aria-label="Toggle Hide Visual Content Images"
+                  />
+                  <span className="a11y-slider"></span>
+                </label>
+              </div>
+
+              {/* Reading Ruler */}
+              <div className="a11y-option-item">
+                <span className="a11y-option-label">Reading Ruler</span>
+                <label className="a11y-switch">
+                  <input
+                    type="checkbox"
+                    checked={a11ySettings.readingMask}
+                    onChange={(e) =>
+                      setA11ySettings((prev) => ({
+                        ...prev,
+                        readingMask: e.target.checked
+                      }))
+                    }
+                    aria-label="Toggle Reading Ruler Mask"
+                  />
+                  <span className="a11y-slider"></span>
+                </label>
+              </div>
+
+              {/* Screen Reader (TTS) */}
+              <div className="a11y-option-item">
+                <span className="a11y-option-label">Screen Reader (TTS)</span>
+                <label className="a11y-switch">
+                  <input
+                    type="checkbox"
+                    checked={a11ySettings.textToSpeech}
+                    onChange={(e) =>
+                      setA11ySettings((prev) => ({
+                        ...prev,
+                        textToSpeech: e.target.checked
+                      }))
+                    }
+                    aria-label="Toggle Screen Reader Text-to-Speech"
+                  />
+                  <span className="a11y-slider"></span>
+                </label>
+              </div>
+
+              {/* Mute Audio Beeps */}
+              <div className="a11y-option-item">
+                <span className="a11y-option-label">Mute Audio Beeps</span>
+                <label className="a11y-switch">
+                  <input
+                    type="checkbox"
+                    checked={a11ySettings.muteSound}
+                    onChange={(e) =>
+                      setA11ySettings((prev) => ({
+                        ...prev,
+                        muteSound: e.target.checked
+                      }))
+                    }
+                    aria-label="Toggle Sound Effects Muting"
+                  />
+                  <span className="a11y-slider"></span>
+                </label>
+              </div>
+
+              {/* Reset Button */}
+              <button
+                className="a11y-reset-btn"
+                onClick={() =>
+                  setA11ySettings({
+                    contrast: 'default',
+                    fontSize: 100,
+                    reducedMotion: false,
+                    dyslexiaFont: false,
+                    highlightLinks: false,
+                    bigCursor: false,
+                    hideImages: false,
+                    muteSound: false,
+                    readingMask: false,
+                    textToSpeech: false
+                  })
+                }
+              >
+                Reset All Settings
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
