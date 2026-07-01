@@ -3198,8 +3198,6 @@ function App() {
                               <div className="arcade-char-frame">
                                 <img src={judge.image} alt={judge.name} className="arcade-char-img" />
                                 <div className="arcade-scanline"></div>
-                                <div className="char-number">P{index + 1}</div>
-                                <div className="arcade-role-badge">{judge.role}</div>
                               </div>
                               <div className="arcade-char-stats">
                                 <h4 className="char-name">{judge.name}</h4>
