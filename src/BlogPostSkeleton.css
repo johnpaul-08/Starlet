@@ -1,0 +1,140 @@
+/* ============================================================
+   BlogPostSkeleton.css
+   Isolated shimmer skeleton for the Starlet Vlog/Blog feed.
+   All class names are prefixed with "bps-" to avoid collisions.
+   ============================================================ */
+
+/* ── List wrapper (mirrors .blog-posts-list) ── */
+.bps-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* ── Card shell (mirrors .blog-post-card) ── */
+.bps-card {
+  background: var(--card-bg, #fff);
+  border: 3.5px solid var(--text-navy, #1a2340);
+  border-radius: 18px;
+  overflow: hidden;
+  margin-bottom: 1.5rem;
+  pointer-events: none;
+  -webkit-user-select: none;
+  user-select: none;
+  /* Stagger the animation per card so they feel alive */
+  --delay: 0s;
+  animation: bps-fade-in 0.35s ease both;
+  animation-delay: var(--delay);
+}
+
+.bps-card:nth-child(1) { --delay: 0s; }
+.bps-card:nth-child(2) { --delay: 0.08s; }
+.bps-card:nth-child(3) { --delay: 0.16s; }
+.bps-card:nth-child(4) { --delay: 0.24s; }
+.bps-card:nth-child(5) { --delay: 0.32s; }
+
+@keyframes bps-fade-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0);   }
+}
+
+/* ── Shimmer base (applied to every placeholder element) ── */
+.bps-shim {
+  background: #e2e8f0;
+  position: relative;
+  overflow: hidden;
+  border-radius: 8px;
+}
+
+/* dark-mode support */
+@media (prefers-color-scheme: dark) {
+  .bps-shim { background: #2a3050; }
+}
+
+.bps-shim::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 30%,
+    rgba(255, 255, 255, 0.55) 50%,
+    transparent 70%
+  );
+  background-size: 200% 100%;
+  animation: bps-shimmer 1.6s ease-in-out infinite;
+  animation-delay: var(--delay, 0s);
+}
+
+@keyframes bps-shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+
+/* ── Header row ── */
+.bps-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  border-bottom: 3.5px solid var(--text-navy, #1a2340);
+}
+
+.bps-avatar {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  border-radius: 50%;
+  border: 2px solid var(--text-navy, #1a2340);
+}
+
+.bps-meta {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+/* ── Text lines ── */
+.bps-line {
+  height: 11px;
+  border-radius: 6px;
+}
+
+.bps-line--name    { width: 42%; }
+.bps-line--time    { width: 26%; height: 9px; }
+.bps-line--caption { flex: 1;   height: 11px; }
+
+/* ── Three-dots ghost ── */
+.bps-dots {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
+/* ── Media placeholder ── */
+.bps-media {
+  width: 100%;
+  /* same aspect ratio as the real posts (square-ish) */
+  aspect-ratio: 1 / 1;
+  max-height: 420px;
+  border-radius: 0;          /* flush with card edges */
+  border-bottom: 3.5px solid var(--text-navy, #1a2340);
+}
+
+/* ── Footer row ── */
+.bps-footer {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.8rem 1.25rem;
+}
+
+/* star-button ghost */
+.bps-star {
+  width: 26px;
+  height: 26px;
+  min-width: 26px;
+  border-radius: 50%;
+}

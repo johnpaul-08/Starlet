@@ -4,6 +4,7 @@ import { supabase, supabaseUrl, supabaseAnonKey } from './supabaseClient';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import SponsorsPage from './SponsorsPage';
+import BlogPostSkeleton from './BlogPostSkeleton';
 
 
 const sectionsData = [
@@ -224,6 +225,69 @@ const galleryCaptions = [
   "High Energy Hackers & Celebration", "Interactive Team Games & Icebreakers", "Fun zone", "One-on-One Project Reviews",
   "Chai & Chats: Refreshment Break", "Sweet Treats & Snack Time"
 ];
+/* ─────────────────────────────────────────────────────────────────
+   MediaSlide – defined at MODULE LEVEL (outside App) so React never
+   sees it as a new component type on re-render. If it were inside
+   App, every state update would recreate the function reference,
+   causing React to unmount+remount every slide and reset its
+   `loaded` state → the shimmer flicker.
+──────────────────────────────────────────────────────────────── */
+const MediaSlide = ({ item, idx }) => {
+  const [loaded, setLoaded] = React.useState(false);
+  return (
+    <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+      {/* Shimmer placeholder – sits behind the media */}
+      {!loaded && (
+        <div
+          className="bps-shim"
+          style={{
+            position: 'absolute',
+            inset: 0,
+            borderRadius: 0,
+            zIndex: 1,
+          }}
+        />
+      )}
+      {item.type === 'video' ? (
+        <video
+          src={item.url}
+          controls
+          playsInline
+          loop
+          preload="metadata"
+          onLoadedData={() => setLoaded(true)}
+          style={{
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            display: 'block',
+            opacity: loaded ? 1 : 0,
+            transition: 'opacity 0.35s ease',
+            position: 'relative',
+            zIndex: 2,
+          }}
+        />
+      ) : (
+        <img
+          src={item.url}
+          alt={`post image ${idx + 1}`}
+          onLoad={() => setLoaded(true)}
+          style={{
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            cursor: 'pointer',
+            display: 'block',
+            opacity: loaded ? 1 : 0,
+            transition: 'opacity 0.35s ease',
+            position: 'relative',
+            zIndex: 2,
+          }}
+        />
+      )}
+    </div>
+  );
+};
 
 function App() {
 
@@ -266,6 +330,7 @@ function App() {
   const [uploadFiles, setUploadFiles] = useState([]);
   const [activeViewPost, setActiveViewPost] = useState(null);
   const [carouselIndices, setCarouselIndices] = useState({});
+  const [activeSharePostId, setActiveSharePostId] = useState(null);
 
   useEffect(() => {
     const handleResize = () => {
@@ -276,7 +341,7 @@ function App() {
   }, []);
 
   useEffect(() => {
-    const closeMenu = () => setActivePostMenuId(null);
+    const closeMenu = () => { setActivePostMenuId(null); setActiveSharePostId(null); };
     window.addEventListener('click', closeMenu);
     return () => window.removeEventListener('click', closeMenu);
   }, []);
@@ -1310,8 +1375,11 @@ function App() {
     }
   };
 
-  const fetchBlogPosts = async () => {
-    setIsLoadingBlog(true);
+  const fetchBlogPosts = async (isRefresh = false) => {
+    // Only show the full skeleton on the very first load (no posts yet).
+    // Background refreshes (star toggle, upload, realtime) must never
+    // replace the list with a skeleton – that causes the flicker.
+    if (!isRefresh) setIsLoadingBlog(true);
     try {
       const { data: posts, error } = await supabase
         .from('blog_posts')
@@ -1334,7 +1402,12 @@ function App() {
             isStarred
           };
         });
-        setBlogPosts(mappedPosts);
+        // Smart diff: only update state if something actually changed.
+        // Comparing id+starCount+isStarred+caption covers all visible mutations.
+        // This prevents unnecessary re-renders (and shimmer replay) when the
+        // data from Supabase is identical to what we already have.
+        const sig = (list) => list.map(p => `${p.id}:${p.starCount}:${p.isStarred}:${p.caption}`).join('|');
+        setBlogPosts(prev => sig(prev) === sig(mappedPosts) ? prev : mappedPosts);
       }
 
       // Fetch user saves if logged in
@@ -1402,7 +1475,7 @@ function App() {
           playNotificationSound();
         }
       }
-      fetchBlogPosts();
+      fetchBlogPosts(true);
       if (activeView === 'profile' || activeView === 'profile-view') {
         const targetId = activeView === 'profile-view' ? viewProfileUser?.id : session.user.id;
         if (targetId) fetchUserProfilePosts(targetId);
@@ -1494,7 +1567,7 @@ function App() {
 
       setTimeout(() => setUploadAlert(null), 4000);
 
-      fetchBlogPosts();
+      fetchBlogPosts(true);
       fetchUserProfilePosts(session.user.id);
     } catch (err) {
       console.error(err);
@@ -1517,7 +1590,7 @@ function App() {
       if (error) {
         alert('Failed to delete post: ' + error.message);
       } else {
-        fetchBlogPosts();
+        fetchBlogPosts(true);
         const targetId = activeView === 'profile-view' ? viewProfileUser?.id : session.user.id;
         if (targetId) fetchUserProfilePosts(targetId);
       }
@@ -1708,24 +1781,9 @@ function App() {
             <div 
               key={idx} 
               className="carousel-slide-item" 
-              style={{ flex: '0 0 100%', width: '100%', aspectRatio: '1 / 1', scrollSnapAlign: 'start', overflow: 'hidden', position: 'relative' }}
+              style={{ flex: '0 0 100%', width: '100%', aspectRatio: '1 / 1', minHeight: '200px', scrollSnapAlign: 'start', overflow: 'hidden', position: 'relative' }}
             >
-              {item.type === 'video' ? (
-                <video 
-                  src={item.url} 
-                  controls 
-                  playsInline 
-                  loop 
-                  preload="metadata" 
-                  style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
-                />
-              ) : (
-                <img 
-                  src={item.url} 
-                  alt={`slide ${idx}`} 
-                  style={{ width: '100%', height: '100%', objectFit: 'cover', cursor: 'pointer' }} 
-                />
-              )}
+              <MediaSlide item={item} idx={idx} />
             </div>
           ))}
         </div>
@@ -1871,7 +1929,7 @@ function App() {
         setActiveViewPost(prev => ({ ...prev, caption: newCaption }));
       }
       
-      fetchBlogPosts();
+      fetchBlogPosts(true);
       fetchUserProfilePosts(session.user.id);
     } catch (err) {
       console.error(err);
@@ -3434,7 +3492,7 @@ function App() {
             )}
           </span>
           <span className="alert-message">{uploadAlert.message}</span>
-          <button className="alert-close-btn" onClick={() => setUploadAlert(null)}>×</button>
+          <button className="alert-close-btn" aria-label="Dismiss notification" onClick={() => setUploadAlert(null)}>×</button>
         </div>
       )}
 
@@ -3486,7 +3544,7 @@ function App() {
             <p className="handwritten splash-text">Igniting your creativity...</p>
           </div>
           <div className="splash-footer handwritten">
-            <img src="brand/Mind Empowered.gif" alt="Mind Empowered" style={{ height: '30px', verticalAlign: 'middle', marginRight: '10px', borderRadius: '5px' }} />
+            <img src="brand/Mind Empowered.jpeg" alt="Mind Empowered" style={{ height: '30px', verticalAlign: 'middle', marginRight: '10px', borderRadius: '5px' }} />
             A Mind Empowered Initiative
           </div>
         </div>
@@ -4075,8 +4133,8 @@ function App() {
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginBottom: '1.5rem' }}>
                         <h2 className="text-3d" style={{ fontSize: '2.5rem', margin: 0 }}>{section.title}</h2>
                         <div className="mobile-scroll-btns" style={{ display: 'flex', gap: '1rem' }}>
-                          <button className="nav-btn-round" onClick={() => partnersRef.current?.scrollBy({ left: -300, behavior: 'smooth' })}>←</button>
-                          <button className="nav-btn-round" onClick={() => partnersRef.current?.scrollBy({ left: 300, behavior: 'smooth' })}>→</button>
+                          <button className="nav-btn-round" aria-label="Scroll sponsors left" onClick={() => partnersRef.current?.scrollBy({ left: -300, behavior: 'smooth' })}>←</button>
+                          <button className="nav-btn-round" aria-label="Scroll sponsors right" onClick={() => partnersRef.current?.scrollBy({ left: 300, behavior: 'smooth' })}>→</button>
                         </div>
                       </div>
 
@@ -4159,8 +4217,8 @@ function App() {
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
                         <h2 className="text-3d" style={{ fontSize: '2.5rem', margin: 0 }}>{section.title}</h2>
                         <div className="gallery-nav-btns" style={{ display: 'flex', gap: '1rem' }}>
-                          <button className="nav-btn-round" onClick={() => landingGalleryRef.current.scrollBy({ left: -400, behavior: 'smooth' })}>←</button>
-                          <button className="nav-btn-round" onClick={() => landingGalleryRef.current.scrollBy({ left: 400, behavior: 'smooth' })}>→</button>
+                          <button className="nav-btn-round" aria-label="Scroll gallery left" onClick={() => landingGalleryRef.current.scrollBy({ left: -400, behavior: 'smooth' })}>←</button>
+                          <button className="nav-btn-round" aria-label="Scroll gallery right" onClick={() => landingGalleryRef.current.scrollBy({ left: 400, behavior: 'smooth' })}>→</button>
                         </div>
                       </div>
                       <div className="gallery-grid" ref={landingGalleryRef} style={{ overflowX: 'auto', display: 'flex', scrollBehavior: 'smooth', padding: '1rem 0' }}>
@@ -6864,23 +6922,7 @@ function App() {
 
           <div className="blog-posts-feed">
             {isLoadingBlog ? (
-              <div className="blog-posts-list">
-                {[1, 2, 3].map(n => (
-                  <div key={n} className="blog-post-card skeleton-card">
-                    <div className="blog-post-header" style={{ borderBottom: 'none' }}>
-                      <div className="skeleton-avatar shim"></div>
-                      <div className="skeleton-meta">
-                        <div className="skeleton-line short shim"></div>
-                        <div className="skeleton-line extra-short shim"></div>
-                      </div>
-                    </div>
-                    <div className="skeleton-media shim"></div>
-                    <div className="blog-post-footer" style={{ borderTop: 'none', padding: '1.5rem 1.25rem' }}>
-                      <div className="skeleton-line medium shim"></div>
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <BlogPostSkeleton count={3} />
             ) : blogPosts.length === 0 ? (
               <div className="empty-blog-placeholder">
                 <svg viewBox="0 0 24 24" width="64" height="64" fill="none" stroke="var(--yellow-star)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: '1rem' }}>
@@ -6965,6 +7007,57 @@ function App() {
                           <span>{renderCaptionWithMentions(post.caption)}</span>
                         </div>
                       )}
+
+                      {/* Share Button — right side */}
+                      <div className="blog-share-wrapper" style={{ marginLeft: 'auto' }}>
+                        <button
+                          className="blog-share-btn"
+                          title="Share post"
+                          onClick={(e) => { e.stopPropagation(); setActiveSharePostId(activeSharePostId === post.id ? null : post.id); }}
+                        >
+                          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                            <circle cx="18" cy="5" r="3"/>
+                            <circle cx="6" cy="12" r="3"/>
+                            <circle cx="18" cy="19" r="3"/>
+                            <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+                            <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+                          </svg>
+                        </button>
+                        {activeSharePostId === post.id && (
+                          <div className="blog-share-dropdown" onClick={e => e.stopPropagation()}>
+                            <a
+                              className="blog-share-option instagram"
+                              href={`https://www.instagram.com/`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={() => { navigator.clipboard?.writeText(`${window.location.href} — Check out this post by @mind.empowered on Starlet! 🌟`); setActiveSharePostId(null); }}
+                              title="Caption copied to clipboard — paste it into your Instagram post!"
+                            >
+                              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
+                                <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/>
+                                <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/>
+                              </svg>
+                              <span>Instagram</span>
+                              <span className="blog-share-hint">📋 Copies caption</span>
+                            </a>
+                            <a
+                              className="blog-share-option linkedin"
+                              href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(window.location.href)}&summary=${encodeURIComponent((post.caption || 'Check out this post on Starlet!') + ' — Follow @mind-empowered for more 🌟')}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={() => setActiveSharePostId(null)}
+                            >
+                              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/>
+                                <rect x="2" y="9" width="4" height="12"/>
+                                <circle cx="4" cy="4" r="2"/>
+                              </svg>
+                              <span>LinkedIn</span>
+                            </a>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -7858,6 +7951,57 @@ function App() {
                     <span>{renderCaptionWithMentions(activeViewPost.caption)}</span>
                   </div>
                 )}
+
+                {/* Share Button — right side */}
+                <div className="blog-share-wrapper" style={{ marginLeft: 'auto' }}>
+                  <button
+                    className="blog-share-btn"
+                    title="Share post"
+                    onClick={(e) => { e.stopPropagation(); setActiveSharePostId(activeSharePostId === activeViewPost.id ? null : activeViewPost.id); }}
+                  >
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="18" cy="5" r="3"/>
+                      <circle cx="6" cy="12" r="3"/>
+                      <circle cx="18" cy="19" r="3"/>
+                      <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+                      <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+                    </svg>
+                  </button>
+                  {activeSharePostId === activeViewPost.id && (
+                    <div className="blog-share-dropdown" onClick={e => e.stopPropagation()}>
+                      <a
+                        className="blog-share-option instagram"
+                        href={`https://www.instagram.com/`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={() => { navigator.clipboard?.writeText(`${window.location.href} — Check out this post by @mind.empowered on Starlet! 🌟`); setActiveSharePostId(null); }}
+                        title="Caption copied to clipboard — paste it into your Instagram post!"
+                      >
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
+                          <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/>
+                          <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/>
+                        </svg>
+                        <span>Instagram</span>
+                        <span className="blog-share-hint">📋 Copies caption</span>
+                      </a>
+                      <a
+                        className="blog-share-option linkedin"
+                        href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(window.location.href)}&summary=${encodeURIComponent((activeViewPost.caption || 'Check out this post on Starlet!') + ' — Follow @mind-empowered for more 🌟')}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={() => setActiveSharePostId(null)}
+                      >
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/>
+                          <rect x="2" y="9" width="4" height="12"/>
+                          <circle cx="4" cy="4" r="2"/>
+                        </svg>
+                        <span>LinkedIn</span>
+                      </a>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
