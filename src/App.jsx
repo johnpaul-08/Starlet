@@ -879,6 +879,21 @@ function App() {
     setIsMenuOpen(false);
   };
 
+  const handleHomeNavClick = (sectionId, e) => {
+    if (e) e.preventDefault();
+    if (activeView !== 'landing') {
+      setActiveView('landing');
+      setTimeout(() => {
+        const el = document.getElementById(sectionId);
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 150);
+    } else {
+      const el = document.getElementById(sectionId);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    setIsMenuOpen(false);
+  };
+
   const renderPagination = (currentPage, totalItems, itemsPerPage, onPageChange) => {
     const totalPages = Math.ceil(totalItems / itemsPerPage);
     if (totalPages <= 1) return null;
@@ -3497,32 +3512,32 @@ function App() {
       <div className="sparkle s2">✧</div>
       <div className="sparkle s3">✦</div>
 
-      <header className={activeView !== 'landing' && activeView !== 'sponsors-overview' && activeView !== 'profile' && activeView !== 'audit-logs' && activeView !== 'blog' && activeView !== 'profile-view' ? 'header-minimal' : ''}>
+      <header className={activeView !== 'landing' && activeView !== 'sponsors-overview' && activeView !== 'profile' && activeView !== 'audit-logs' && activeView !== 'blog' && activeView !== 'profile-view' && activeView !== 'venue' ? 'header-minimal' : ''}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
           <div className="logo-circle" onClick={() => setActiveView('landing')} style={{ cursor: 'pointer' }}>
             <img src="brand/Logo.png" alt="Starlet Logo" />
           </div>
-          {(activeView === 'profile' || activeView === 'sponsors-overview' || activeView === 'audit-logs' || activeView === 'blog' || activeView === 'profile-view' || isMobile) && (
+          {(activeView === 'profile' || activeView === 'sponsors-overview' || activeView === 'audit-logs' || activeView === 'blog' || activeView === 'profile-view' || activeView === 'venue' || isMobile) && (
             <span className="logo-text-starlet" onClick={() => setActiveView('landing')} style={{ cursor: 'pointer' }}>
               Starlet
             </span>
           )}
         </div>
 
-        {(activeView === 'landing' || activeView === 'blog' || activeView === 'profile-view') && (
+        {(activeView === 'landing' || activeView === 'blog' || activeView === 'profile-view' || activeView === 'venue') && (
           <>
             <nav className={`nav-links ${isMenuOpen ? 'mobile-active' : ''}`}>
               <>
-                <a href="#mission" className="nav-link" onClick={() => { setActiveView('landing'); setIsMenuOpen(false); }}>Mission</a>
-                  <a href="#tracks" className="nav-link" onClick={() => { setActiveView('landing'); setIsMenuOpen(false); }}>Tracks</a>
-                  <a href="#timeline" className="nav-link" onClick={() => { setActiveView('landing'); setIsMenuOpen(false); }}>Timeline</a>
-                  <a href="#events" className="nav-link" onClick={() => { setActiveView('landing'); setIsMenuOpen(false); }}>Events</a>
-                  <a href="#rules" className="nav-link" onClick={() => { setActiveView('landing'); setIsMenuOpen(false); }}>Rules</a>
-                  <a href="#sponsors" className="nav-link" onClick={() => { setActiveView('landing'); setIsMenuOpen(false); }}>Sponsors</a>
-                  <a href="#uic-overview" className="nav-link" onClick={() => { setActiveView('landing'); setIsMenuOpen(false); }}>UIC Overview</a>
-                  <a href="#contact" className="nav-link" onClick={() => { setActiveView('landing'); setIsMenuOpen(false); }}>Contact Us</a>
-                  <a href="#" className={`nav-link ${activeView === 'blog' ? 'active' : ''}`} onClick={(e) => { e.preventDefault(); setActiveView('blog'); setIsMenuOpen(false); }}>Blog</a>
-                </>
+                <a href="#mission" className="nav-link" onClick={(e) => handleHomeNavClick('mission', e)}>Mission</a>
+                <a href="#tracks" className="nav-link" onClick={(e) => handleHomeNavClick('tracks', e)}>Tracks</a>
+                <a href="#timeline" className="nav-link" onClick={(e) => handleHomeNavClick('timeline', e)}>Timeline</a>
+                <a href="#events" className="nav-link" onClick={(e) => handleHomeNavClick('events', e)}>Events</a>
+                <a href="#rules" className="nav-link" onClick={(e) => handleHomeNavClick('rules', e)}>Rules</a>
+                <a href="#sponsors" className="nav-link" onClick={(e) => handleHomeNavClick('sponsors', e)}>Sponsors</a>
+                <a href="#uic-overview" className="nav-link" onClick={(e) => handleHomeNavClick('uic-overview', e)}>UIC Overview</a>
+                <a href="#contact" className="nav-link" onClick={(e) => handleHomeNavClick('contact', e)}>Contact Us</a>
+                <a href="#" className={`nav-link ${activeView === 'blog' ? 'active' : ''}`} onClick={(e) => { e.preventDefault(); setActiveView('blog'); setIsMenuOpen(false); }}>Blog</a>
+              </>
 
               <div className="mobile-auth-wrapper">
                 {isLoggedIn ? (
@@ -6914,12 +6929,12 @@ function App() {
                     {renderPostMedia(post)}
 
                     {/* Post Actions & Caption */}
-                    <div className="blog-post-footer" style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', padding: '0.8rem 1.25rem' }}>
+                    <div className="blog-post-footer" style={{ display: 'flex', alignItems: 'flex-start', gap: '0.8rem', padding: '0.8rem 1.25rem' }}>
                       <button 
                         className={`blog-star-btn ${post.isStarred ? 'starred' : ''}`}
                         onClick={() => handleStarToggle(post.id)}
                         title={post.isStarred ? 'Unstar post' : 'Star post'}
-                        style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                        style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: '2px' }}
                       >
                         <svg className="star-icon-svg" viewBox="0 0 24 24" width="24" height="24" fill={post.isStarred ? "var(--yellow-star)" : "none"} stroke="var(--text-navy)" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round">
                           <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
@@ -7807,12 +7822,12 @@ function App() {
               {renderPostMedia(activeViewPost)}
 
               {/* Footer */}
-              <div className="blog-post-footer" style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', padding: '0.8rem 1rem' }}>
+              <div className="blog-post-footer" style={{ display: 'flex', alignItems: 'flex-start', gap: '0.8rem', padding: '0.8rem 1rem' }}>
                 <button 
                   className={`blog-star-btn ${activeViewPost.isStarred ? 'starred' : ''}`}
                   onClick={() => handleStarToggle(activeViewPost.id)}
                   title={activeViewPost.isStarred ? 'Unstar post' : 'Star post'}
-                  style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                  style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: '2px' }}
                 >
                   <svg className="star-icon-svg" viewBox="0 0 24 24" width="24" height="24" fill={activeViewPost.isStarred ? "var(--yellow-star)" : "none"} stroke="var(--text-navy)" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round">
                     <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
