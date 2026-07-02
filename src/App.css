@@ -7466,4 +7466,323 @@ input:checked + .a11y-slider:before {
     }
 }
 
+/* ==========================================================================
+   BLOG FEED & VLOGS GALLERY STYLES
+   ========================================================================== */
+
+.blog-feed-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem;
+}
+
+.blog-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 3rem;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+}
+
+.blog-posts-list {
+    display: flex;
+    flex-direction: column;
+    gap: 3rem;
+}
+
+.blog-post-card {
+    background: #fffdf0;
+    border: 4px solid var(--text-navy);
+    border-radius: 24px;
+    box-shadow: 8px 8px 0px var(--text-navy);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.blog-post-card:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: 10px 10px 0px var(--text-navy);
+}
+
+.blog-post-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.2rem 1.5rem;
+    border-bottom: 4px solid var(--text-navy);
+    background: #fff;
+}
+
+.blog-post-author {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    text-decoration: none;
+    color: inherit;
+}
+
+.author-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    border: 2.5px solid var(--text-navy);
+    overflow: hidden;
+    background: var(--yellow-star);
+}
+
+.author-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.author-meta {
+    display: flex;
+    flex-direction: column;
+}
+
+.author-meta strong {
+    font-family: 'Fredoka One', cursive;
+    color: var(--text-navy);
+    font-size: 1.05rem;
+}
+
+.author-meta span {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: 0.1rem;
+}
+
+.blog-delete-btn {
+    background: none;
+    border: none;
+    font-size: 1.3rem;
+    cursor: pointer;
+    padding: 0.4rem;
+    border-radius: 8px;
+    transition: background-color 0.2s ease;
+}
+
+.blog-delete-btn:hover {
+    background-color: rgba(255, 0, 0, 0.1);
+}
+
+.blog-post-media {
+    width: 100%;
+    background: #000;
+    line-height: 0;
+    max-height: 500px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.blog-post-media img,
+.blog-post-media video {
+    width: 100%;
+    max-height: 500px;
+    object-fit: contain;
+}
+
+.blog-post-footer {
+    padding: 1.2rem 1.5rem;
+    background: #fff;
+    border-top: 4px solid var(--text-navy);
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+}
+
+.blog-post-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+}
+
+.blog-star-btn {
+    background: none;
+    border: none;
+    font-size: 1.8rem;
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+    transition: transform 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    filter: grayscale(100%) opacity(0.4);
+}
+
+.blog-star-btn.starred {
+    filter: none;
+    transform: scale(1.2);
+    animation: starPulse 0.3s ease-out;
+}
+
+.blog-star-btn:hover {
+    transform: scale(1.15);
+}
+
+@keyframes starPulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.4); }
+    100% { transform: scale(1.2); }
+}
+
+.blog-star-count {
+    font-size: 0.95rem;
+    color: var(--text-navy);
+}
+
+.blog-post-caption {
+    font-size: 0.95rem;
+    color: var(--text-navy);
+    line-height: 1.45;
+}
+
+.blog-post-caption strong:hover {
+    color: var(--pink-primary);
+    text-decoration: underline;
+}
+
+/* Modal specific customizations */
+.blog-upload-modal {
+    max-width: 500px;
+}
+
+/* User profiles enhancements */
+.vlogs-count-badge {
+    display: inline-block;
+    padding: 0.4rem 0.8rem;
+    background: var(--yellow-star);
+    border: 2.5px solid var(--text-navy);
+    border-radius: 12px;
+    box-shadow: 2px 2px 0px var(--text-navy);
+    font-family: 'Fredoka One', cursive;
+    font-size: 0.85rem;
+    color: var(--text-navy);
+}
+
+.profile-vlogs-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.profile-vlog-item {
+    position: relative;
+    aspect-ratio: 1 / 1;
+    border: 3px solid var(--text-navy);
+    border-radius: 16px;
+    overflow: hidden;
+    cursor: pointer;
+    background: #000;
+}
+
+.profile-vlog-item img,
+.profile-vlog-item video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.video-thumbnail-placeholder {
+    width: 100%;
+    height: 100%;
+    position: relative;
+}
+
+.video-play-indicator {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0, 0, 0, 0.6);
+    color: #fff;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    border: 2px solid #fff;
+}
+
+.profile-vlog-hover {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 31, 63, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    color: #fff;
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.2rem;
+}
+
+.profile-vlog-item:hover .profile-vlog-hover {
+    opacity: 1;
+}
+
+/* 3rd Person Profile viewer connectivity */
+.social-connect-item-view {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    padding: 0.8rem 1.2rem;
+    border: 3px solid var(--text-navy);
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: 3px 3px 0px var(--text-navy);
+    text-decoration: none;
+    color: var(--text-navy);
+    font-weight: bold;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.social-connect-item-view:not(.empty):hover {
+    transform: translate(-1px, -1px);
+    box-shadow: 4px 4px 0px var(--text-navy);
+    background: #fffdf0;
+}
+
+.social-connect-item-view.empty {
+    opacity: 0.5;
+    cursor: default;
+    background: #f5f5f5;
+}
+
+.social-connect-item-view img {
+    width: 24px;
+    height: 24px;
+}
+
+/* Empty placeholder */
+.empty-blog-placeholder {
+    text-align: center;
+    padding: 4rem 2rem;
+    background: rgba(255, 255, 255, 0.05);
+    border: 3px dashed var(--blue-shadow);
+    border-radius: 20px;
+}
+
+.empty-blog-placeholder h2 {
+    font-family: 'Fredoka One', cursive;
+    color: #fff;
+}
+
+.empty-blog-placeholder p {
+    color: #eee;
+    margin-top: 0.5rem;
+}
+
+
 

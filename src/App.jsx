@@ -243,6 +243,17 @@ function App() {
   const [customTrackDesc, setCustomTrackDesc] = useState('');
   const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' ? window.innerWidth <= 768 : false);
 
+  // Blog Feed & 3rd Person Profile Viewer states
+  const [blogPosts, setBlogPosts] = useState([]);
+  const [starredPostIds, setStarredPostIds] = useState(new Set());
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [uploadCaption, setUploadCaption] = useState('');
+  const [uploadFile, setUploadFile] = useState(null);
+  const [uploadFileType, setUploadFileType] = useState('image');
+  const [isUploading, setIsUploading] = useState(false);
+  const [viewProfileUser, setViewProfileUser] = useState(null);
+  const [userProfilePosts, setUserProfilePosts] = useState([]);
+
   useEffect(() => {
     const handleResize = () => {
       setIsMobile(window.innerWidth <= 768);
@@ -1006,6 +1017,7 @@ function App() {
     fetchProblemStatements();
     fetchSettings();
     fetchAllMentors();
+    fetchBlogPosts();
     if (isLoggedIn && user.role === 'admin') fetchSubmissions();
     if (isLoggedIn && user.role === 'attendee') fetchMySubmission();
 
@@ -1041,6 +1053,16 @@ function App() {
     if (!isLoggedIn || user.role !== 'attendee' || !session?.user?.id) return;
     fetchMySubmission();
   }, [isLoggedIn, user.role, user.teamName, session?.user?.id]);
+
+  useEffect(() => {
+    if (isLoggedIn && session?.user?.id) {
+      fetchUserStarredPosts();
+      fetchUserProfilePosts(session.user.id);
+    } else {
+      setStarredPostIds(new Set());
+      setUserProfilePosts([]);
+    }
+  }, [isLoggedIn, session?.user?.id]);
 
   // URL Hash-based Routing for Sponsors Page (UIC Overview)
   useEffect(() => {
@@ -1185,6 +1207,239 @@ function App() {
       }
     } catch (error) {
       console.error('Error fetching profile:', error);
+    }
+  };
+
+  const fetchBlogPosts = async () => {
+    try {
+      const { data: posts, error } = await supabase
+        .from('blog_posts')
+        .select('*, profiles:user_id(full_name, avatar_url), blog_post_stars(user_id)')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching blog posts:', error);
+        return;
+      }
+
+      if (posts) {
+        const mappedPosts = posts.map(post => {
+          const starsList = post.blog_post_stars || [];
+          const starCount = starsList.length;
+          const isStarred = session?.user?.id ? starsList.some(s => s.user_id === session.user.id) : false;
+          return {
+            ...post,
+            starCount,
+            isStarred
+          };
+        });
+        setBlogPosts(mappedPosts);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const fetchUserStarredPosts = async () => {
+    if (!session?.user?.id) return;
+    try {
+      const { data, error } = await supabase
+        .from('blog_post_stars')
+        .select('post_id')
+        .eq('user_id', session.user.id);
+      
+      if (data) {
+        setStarredPostIds(new Set(data.map(item => item.post_id)));
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleStarToggle = async (postId) => {
+    if (!isLoggedIn || !session?.user?.id) {
+      alert('Please log in to star posts!');
+      return;
+    }
+    const currentUserId = session.user.id;
+    const isCurrentlyStarred = blogPosts.find(p => p.id === postId)?.isStarred;
+
+    try {
+      if (isCurrentlyStarred) {
+        const { error } = await supabase
+          .from('blog_post_stars')
+          .delete()
+          .eq('post_id', postId)
+          .eq('user_id', currentUserId);
+        
+        if (!error) {
+          playNotificationSound();
+        }
+      } else {
+        const { error } = await supabase
+          .from('blog_post_stars')
+          .insert([{ post_id: postId, user_id: currentUserId }]);
+        
+        if (!error) {
+          playNotificationSound();
+        }
+      }
+      fetchBlogPosts();
+      if (activeView === 'profile' || activeView === 'profile-view') {
+        const targetId = activeView === 'profile-view' ? viewProfileUser?.id : session.user.id;
+        if (targetId) fetchUserProfilePosts(targetId);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleUploadPost = async (e) => {
+    e.preventDefault();
+    if (!isLoggedIn || !session?.user?.id) {
+      alert('Please log in to upload!');
+      return;
+    }
+    if (!uploadFile) {
+      alert('Please select an image or video file to upload!');
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      const fileExt = uploadFile.name.split('.').pop();
+      const fileName = `${session.user.id}-${Date.now()}.${fileExt}`;
+      const filePath = `posts/${fileName}`;
+
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('blog-media')
+        .upload(filePath, uploadFile);
+
+      if (uploadError) {
+        alert('File upload failed: ' + uploadError.message);
+        setIsUploading(false);
+        return;
+      }
+
+      const { data: urlData } = supabase.storage
+        .from('blog-media')
+        .getPublicUrl(filePath);
+
+      const mediaUrl = urlData.publicUrl;
+
+      const { error: dbError } = await supabase
+        .from('blog_posts')
+        .insert([{
+          user_id: session.user.id,
+          caption: uploadCaption,
+          media_url: mediaUrl,
+          media_type: uploadFileType
+        }]);
+
+      if (dbError) {
+        alert('Failed to save post: ' + dbError.message);
+      } else {
+        setUploadCaption('');
+        setUploadFile(null);
+        setIsUploadModalOpen(false);
+        fetchBlogPosts();
+        fetchUserProfilePosts(session.user.id);
+      }
+    } catch (err) {
+      console.error(err);
+      alert('An unexpected error occurred during upload.');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleDeletePost = async (postId) => {
+    if (!confirm('Are you sure you want to delete this post?')) return;
+    try {
+      const { error } = await supabase
+        .from('blog_posts')
+        .delete()
+        .eq('id', postId);
+      
+      if (error) {
+        alert('Failed to delete post: ' + error.message);
+      } else {
+        fetchBlogPosts();
+        const targetId = activeView === 'profile-view' ? viewProfileUser?.id : session.user.id;
+        if (targetId) fetchUserProfilePosts(targetId);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const fetchUserProfilePosts = async (userId) => {
+    try {
+      const { data, error } = await supabase
+        .from('blog_posts')
+        .select('*, profiles:user_id(full_name, avatar_url), blog_post_stars(user_id)')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+
+      if (data) {
+        const mappedPosts = data.map(post => {
+          const starsList = post.blog_post_stars || [];
+          const starCount = starsList.length;
+          const isStarred = session?.user?.id ? starsList.some(s => s.user_id === session.user.id) : false;
+          return {
+            ...post,
+            starCount,
+            isStarred
+          };
+        });
+        setUserProfilePosts(mappedPosts);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleViewUserProfile = async (userId) => {
+    if (session?.user?.id && userId === session.user.id) {
+      setActiveView('profile');
+      fetchUserProfilePosts(session.user.id);
+      return;
+    }
+
+    try {
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+      
+      if (error) {
+        console.error('Error fetching target profile:', error);
+        return;
+      }
+      
+      if (profile) {
+        const mappedUser = {
+          id: profile.id,
+          name: profile.full_name || 'Anonymous',
+          email: profile.email || '',
+          role: profile.user_role || 'attendee',
+          avatarUrl: profile.avatar_url,
+          bio: profile.bio || '',
+          teamName: profile.team_name || '',
+          trackId: profile.track_id || '',
+          socials: {
+            github: profile.social_github || '',
+            linkedin: profile.social_linkedin || ''
+          },
+          isApproved: profile.is_approved || false
+        };
+        setViewProfileUser(mappedUser);
+        fetchUserProfilePosts(userId);
+        setActiveView('profile-view');
+      }
+    } catch (e) {
+      console.error(e);
     }
   };
 
@@ -2742,43 +2997,47 @@ function App() {
       <div className="sparkle s2">✧</div>
       <div className="sparkle s3">✦</div>
 
-      <header className={activeView !== 'landing' && activeView !== 'sponsors-overview' && activeView !== 'profile' && activeView !== 'audit-logs' ? 'header-minimal' : ''}>
+      <header className={activeView !== 'landing' && activeView !== 'sponsors-overview' && activeView !== 'profile' && activeView !== 'audit-logs' && activeView !== 'blog' && activeView !== 'profile-view' ? 'header-minimal' : ''}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
           <div className="logo-circle" onClick={() => setActiveView('landing')} style={{ cursor: 'pointer' }}>
             <img src="brand/Logo.png" alt="Starlet Logo" />
           </div>
-          {(activeView === 'profile' || activeView === 'sponsors-overview' || activeView === 'audit-logs' || isMobile) && (
+          {(activeView === 'profile' || activeView === 'sponsors-overview' || activeView === 'audit-logs' || activeView === 'blog' || activeView === 'profile-view' || isMobile) && (
             <span className="logo-text-starlet" onClick={() => setActiveView('landing')} style={{ cursor: 'pointer' }}>
               Starlet
             </span>
           )}
         </div>
 
-        {activeView === 'landing' && (
+        {(activeView === 'landing' || activeView === 'blog' || activeView === 'profile-view') && (
           <>
             <nav className={`nav-links ${isMenuOpen ? 'mobile-active' : ''}`}>
-              <a href="#mission" className="nav-link" onClick={() => setIsMenuOpen(false)}>Mission</a>
-              <a href="#tracks" className="nav-link" onClick={() => setIsMenuOpen(false)}>Tracks</a>
-              <a href="#timeline" className="nav-link" onClick={() => setIsMenuOpen(false)}>Timeline</a>
-              <a href="#events" className="nav-link" onClick={() => setIsMenuOpen(false)}>Events</a>
-
-              <a href="#rules" className="nav-link" onClick={() => setIsMenuOpen(false)}>Rules</a>
-              <a href="#sponsors" className="nav-link" onClick={() => setIsMenuOpen(false)}>Sponsors</a>
-              <a href="#uic-overview" className="nav-link" onClick={() => setIsMenuOpen(false)}>UIC Overview</a>
-              <a href="#contact" className="nav-link" onClick={() => setIsMenuOpen(false)}>Contact Us</a>
+              {activeView === 'landing' ? (
+                <>
+                  <a href="#mission" className="nav-link" onClick={() => setIsMenuOpen(false)}>Mission</a>
+                  <a href="#tracks" className="nav-link" onClick={() => setIsMenuOpen(false)}>Tracks</a>
+                  <a href="#timeline" className="nav-link" onClick={() => setIsMenuOpen(false)}>Timeline</a>
+                  <a href="#events" className="nav-link" onClick={() => setIsMenuOpen(false)}>Events</a>
+                  <a href="#rules" className="nav-link" onClick={() => setIsMenuOpen(false)}>Rules</a>
+                  <a href="#sponsors" className="nav-link" onClick={() => setIsMenuOpen(false)}>Sponsors</a>
+                  <a href="#uic-overview" className="nav-link" onClick={() => setIsMenuOpen(false)}>UIC Overview</a>
+                  <a href="#contact" className="nav-link" onClick={() => setIsMenuOpen(false)}>Contact Us</a>
+                  <a href="#" className="nav-link" onClick={(e) => { e.preventDefault(); setActiveView('blog'); setIsMenuOpen(false); }}>Blog</a>
+                </>
+              ) : (
+                <>
+                  <a href="#" className="nav-link" onClick={(e) => { e.preventDefault(); setActiveView('landing'); setIsMenuOpen(false); }}>Home</a>
+                  <a href="#" className={`nav-link ${activeView === 'blog' ? 'active' : ''}`} onClick={(e) => { e.preventDefault(); setActiveView('blog'); setIsMenuOpen(false); }}>Blog</a>
+                </>
+              )}
 
               <div className="mobile-auth-wrapper">
-                {installPrompt && (
-                  <button 
-                    className="join-btn install-mobile-btn" 
-                    onClick={() => { handleInstallClick(); setIsMenuOpen(false); }} 
-                    style={{ width: '100%', marginBottom: '1.2rem', background: 'linear-gradient(135deg, var(--pink-primary) 0%, #8b5cf6 100%)', color: '#fff', border: '3.5px solid var(--text-navy)', boxShadow: '4px 4px 0px var(--text-navy)' }}
-                  >
-                    INSTALL APP ✦
-                  </button>
-                )}
                 {isLoggedIn ? (
                   <>
+                    <div className="mobile-profile-link" onClick={() => { setActiveView('blog'); setIsMenuOpen(false); }}>
+                      <img src="icons/instagram.svg" alt="blog" />
+                      <span>Blog Feed</span>
+                    </div>
                     <div className="mobile-profile-link" onClick={() => { setActiveView('venue'); setIsMenuOpen(false); }}>
                       <img src="icons/location.svg" alt="venue" />
                       <span>Venue Details</span>
@@ -2799,15 +3058,6 @@ function App() {
 
             <div className="header-actions">
               <div className="desktop-auth-btns">
-                {installPrompt && (
-                  <button 
-                    className="join-btn install-desktop-btn" 
-                    onClick={handleInstallClick} 
-                    style={{ marginRight: '1rem', padding: '0.4rem 1rem', fontSize: '0.85rem', background: 'linear-gradient(135deg, var(--pink-primary) 0%, #8b5cf6 100%)', color: '#fff', border: '3px solid var(--text-navy)', boxShadow: '3px 3px 0px var(--text-navy)', height: 'fit-content' }}
-                  >
-                    INSTALL APP ✦
-                  </button>
-                )}
                 {isLoggedIn ? (
                   <>
                     <img
@@ -5073,6 +5323,9 @@ function App() {
                 <div className={`status-badge ${user.isApproved ? 'approved' : 'pending'}`}>
                   {user.isApproved ? 'VERIFIED MENTOR' : 'AWAITING APPROVAL'}
                 </div>
+                <div className="vlogs-count-badge" style={{ marginTop: '0.8rem' }}>
+                  📷 {userProfilePosts.length} {userProfilePosts.length === 1 ? 'Post / Vlog' : 'Posts / Vlogs'}
+                </div>
 
                 <div className="profile-field" style={{ marginTop: '2rem' }}>
                   <label>Mentor Bio</label>
@@ -5271,6 +5524,31 @@ function App() {
                         {mentorRequests.length === 0 && <p className="empty-msg" style={{ opacity: 0.5 }}>No active help requests yet. Stay tuned!</p>}
                       </div>
                     </div>
+                    {/* MY VLOGS / POSTS GRID */}
+                    <div className="profile-card" style={{ marginTop: '2rem', padding: '2rem', background: 'rgba(255,255,255,0.05)', borderRadius: '20px' }}>
+                      <h3 className="text-3d" style={{ fontSize: '1.5rem', marginBottom: '1.5rem' }}>My Vlogs & Posts</h3>
+                      {userProfilePosts.length === 0 ? (
+                        <p style={{ opacity: 0.5, fontStyle: 'italic' }}>No posts uploaded yet. Head over to the Blog Feed to upload your first vlog!</p>
+                      ) : (
+                        <div className="profile-vlogs-grid">
+                          {userProfilePosts.map(post => (
+                            <div key={post.id} className="profile-vlog-item" onClick={() => setFullscreenImageUrl(post.media_url)}>
+                              {post.media_type === 'video' ? (
+                                <div className="video-thumbnail-placeholder">
+                                  <video src={post.media_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} muted />
+                                  <div className="video-play-indicator">▶</div>
+                                </div>
+                              ) : (
+                                <img src={post.media_url} alt="vlog" />
+                              )}
+                              <div className="profile-vlog-hover">
+                                <span>⭐ {post.starCount}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -5297,6 +5575,9 @@ function App() {
                   </label>
                 </div>
                 <h2 className="text-3d">{user.name}</h2>
+                <div className="vlogs-count-badge" style={{ marginTop: '0.5rem' }}>
+                  📷 {userProfilePosts.length} {userProfilePosts.length === 1 ? 'Post / Vlog' : 'Posts / Vlogs'}
+                </div>
                 <div className="profile-field" style={{ marginTop: '2rem' }}>
                   <label>Hacker Bio</label>
                   <textarea
@@ -5646,6 +5927,31 @@ function App() {
                     </form>
                   )}
                 </div>
+                {/* MY VLOGS / POSTS GRID */}
+                <div className="profile-card" style={{ marginTop: '2rem', padding: '2rem', background: 'rgba(255,255,255,0.05)', borderRadius: '20px' }}>
+                  <h3 className="text-3d" style={{ fontSize: '1.5rem', marginBottom: '1.5rem' }}>My Vlogs & Posts</h3>
+                  {userProfilePosts.length === 0 ? (
+                    <p style={{ opacity: 0.5, fontStyle: 'italic' }}>No posts uploaded yet. Head over to the Blog Feed to upload your first vlog!</p>
+                  ) : (
+                    <div className="profile-vlogs-grid">
+                      {userProfilePosts.map(post => (
+                        <div key={post.id} className="profile-vlog-item" onClick={() => setFullscreenImageUrl(post.media_url)}>
+                          {post.media_type === 'video' ? (
+                            <div className="video-thumbnail-placeholder">
+                              <video src={post.media_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} muted />
+                              <div className="video-play-indicator">▶</div>
+                            </div>
+                          ) : (
+                            <img src={post.media_url} alt="vlog" />
+                          )}
+                          <div className="profile-vlog-hover">
+                            <span>⭐ {post.starCount}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             </>
           )}
@@ -5949,6 +6255,286 @@ function App() {
         </div>
       ) : activeView === 'sponsors-overview' ? (
         <SponsorsPage onBack={() => setActiveView('landing')} />
+      ) : activeView === 'blog' ? (
+        <div className="blog-feed-container" style={{ paddingTop: '100px' }}>
+          <div className="blog-header-row">
+            <div>
+              <h1 className="text-3d" style={{ fontSize: '3.5rem' }}>Starlet Blog Feed</h1>
+              <p className="handwritten" style={{ fontSize: '1.2rem' }}>Catch the latest vibes and vlogs from Starlet 5.0!</p>
+            </div>
+            {isLoggedIn && (
+              <button 
+                className="join-btn upload-vlog-btn"
+                onClick={() => setIsUploadModalOpen(true)}
+                style={{ background: 'var(--yellow-star)', color: 'var(--text-navy)' }}
+              >
+                🎥 SHARE A VLOG / PHOTO
+              </button>
+            )}
+          </div>
+
+          <div className="blog-posts-feed">
+            {blogPosts.length === 0 ? (
+              <div className="empty-blog-placeholder">
+                <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>✨</div>
+                <h2>The feed is empty!</h2>
+                <p>Be the first one to post a highlight from the event!</p>
+              </div>
+            ) : (
+              <div className="blog-posts-list">
+                {blogPosts.map(post => (
+                  <div key={post.id} className="blog-post-card">
+                    {/* Post Header */}
+                    <div className="blog-post-header">
+                      <div className="blog-post-author" onClick={() => handleViewUserProfile(post.user_id)} style={{ cursor: 'pointer' }}>
+                        <div className="author-avatar">
+                          <img 
+                            src={post.profiles?.avatar_url || 'icons/user-profile.svg'} 
+                            alt={post.profiles?.full_name || 'User'} 
+                          />
+                        </div>
+                        <div className="author-meta">
+                          <strong>{post.profiles?.full_name || 'Anonymous User'}</strong>
+                          <span>{new Date(post.created_at).toLocaleDateString()} at {new Date(post.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                        </div>
+                      </div>
+                      
+                      {/* Delete option for Owner or Admin */}
+                      {(session?.user?.id && (post.user_id === session.user.id || user.role === 'admin')) && (
+                        <button className="blog-delete-btn" onClick={() => handleDeletePost(post.id)} title="Delete Post">
+                          🗑️
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Post Content Media */}
+                    <div className="blog-post-media">
+                      {post.media_type === 'video' ? (
+                        <video src={post.media_url} controls playsInline loop preload="metadata" />
+                      ) : (
+                        <img 
+                          src={post.media_url} 
+                          alt="post upload" 
+                          onClick={() => setFullscreenImageUrl(post.media_url)} 
+                          style={{ cursor: 'pointer' }}
+                        />
+                      )}
+                    </div>
+
+                    {/* Post Actions & Caption */}
+                    <div className="blog-post-footer">
+                      <div className="blog-post-actions">
+                        <button 
+                          className={`blog-star-btn ${post.isStarred ? 'starred' : ''}`}
+                          onClick={() => handleStarToggle(post.id)}
+                        >
+                          ⭐
+                        </button>
+                        <span className="blog-star-count">
+                          <strong>{post.starCount}</strong> {post.starCount === 1 ? 'star' : 'stars'}
+                        </span>
+                      </div>
+                      {post.caption && (
+                        <div className="blog-post-caption">
+                          <strong onClick={() => handleViewUserProfile(post.user_id)} style={{ cursor: 'pointer', marginRight: '8px' }}>
+                            {post.profiles?.full_name || 'Anonymous User'}:
+                          </strong>
+                          <span>{post.caption}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* UPLOAD MODAL */}
+          {isUploadModalOpen && (
+            <div className="modal-overlay" onClick={() => setIsUploadModalOpen(false)}>
+              <div className="modal-content blog-upload-modal" onClick={e => e.stopPropagation()}>
+                <button className="modal-close" onClick={() => setIsUploadModalOpen(false)}>×</button>
+                <h2 className="text-3d" style={{ marginBottom: '1.5rem' }}>Upload Vlog or Photo</h2>
+                <form className="auth-form" onSubmit={handleUploadPost}>
+                  <div className="input-group">
+                    <label>Post Caption</label>
+                    <textarea 
+                      placeholder="Write something cool about this post..." 
+                      value={uploadCaption}
+                      onChange={(e) => setUploadCaption(e.target.value)}
+                      required
+                      style={{ minHeight: '80px', borderRadius: '10px' }}
+                    />
+                  </div>
+
+                  <div className="input-group" style={{ marginTop: '1rem' }}>
+                    <label>Media Type</label>
+                    <div style={{ display: 'flex', gap: '1rem', marginTop: '0.3rem' }}>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer', color: 'var(--text-navy)', fontWeight: 'bold' }}>
+                        <input 
+                          type="radio" 
+                          name="mediaType" 
+                          value="image" 
+                          checked={uploadFileType === 'image'} 
+                          onChange={() => setUploadFileType('image')} 
+                        />
+                        Image/Photo
+                      </label>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer', color: 'var(--text-navy)', fontWeight: 'bold' }}>
+                        <input 
+                          type="radio" 
+                          name="mediaType" 
+                          value="video" 
+                          checked={uploadFileType === 'video'} 
+                          onChange={() => setUploadFileType('video')} 
+                        />
+                        Video
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="input-group" style={{ marginTop: '1.5rem' }}>
+                    <label>Select File</label>
+                    <input 
+                      type="file" 
+                      accept={uploadFileType === 'video' ? 'video/*' : 'image/*'} 
+                      onChange={(e) => setUploadFile(e.target.files[0])}
+                      required
+                      className="admin-select-small"
+                      style={{ padding: '0.6rem 0.8rem', width: '100%' }}
+                    />
+                  </div>
+
+                  <button 
+                    type="submit" 
+                    className="join-btn" 
+                    disabled={isUploading}
+                    style={{ width: '100%', marginTop: '2rem' }}
+                  >
+                    {isUploading ? 'UPLOADING...' : 'POST TO BLOG FEED ✦'}
+                  </button>
+                </form>
+              </div>
+            </div>
+          )}
+        </div>
+      ) : activeView === 'profile-view' ? (
+        <div className="profile-container" style={{ paddingTop: '100px' }}>
+          <div className="profile-sidebar">
+            <div className="profile-avatar">
+              <img
+                src={viewProfileUser.avatarUrl || 'icons/user-profile.svg'}
+                alt="avatar"
+                style={{ objectFit: viewProfileUser.avatarUrl ? 'cover' : 'contain', borderRadius: '50%', width: '100%', height: '100%' }}
+              />
+            </div>
+            <h2 className="text-3d">{viewProfileUser.name}</h2>
+            <div className={`status-badge ${viewProfileUser.role}`}>
+              {viewProfileUser.role.toUpperCase()}
+            </div>
+            
+            <div className="vlogs-count-badge" style={{ marginTop: '1rem' }}>
+              📷 {userProfilePosts.length} {userProfilePosts.length === 1 ? 'Post / Vlog' : 'Posts / Vlogs'}
+            </div>
+
+            <div className="profile-field" style={{ marginTop: '2rem' }}>
+              <label>{viewProfileUser.role === 'mentor' ? 'Mentor Bio' : 'Hacker Bio'}</label>
+              <div className="field-value" style={{ border: '2px solid var(--text-navy)', padding: '1rem', borderRadius: '12px', background: 'rgba(0,0,0,0.05)', fontSize: '0.95rem', lineHeight: '1.5' }}>
+                {viewProfileUser.bio || 'No bio written yet.'}
+              </div>
+            </div>
+            
+            <button className="join-btn" style={{ marginTop: '2rem', width: '100%' }} onClick={() => setActiveView('blog')}>
+              BACK TO BLOG FEED
+            </button>
+          </div>
+
+          <div className="profile-main">
+            {viewProfileUser.role === 'attendee' ? (
+              <>
+                <div className="profile-card">
+                  <h3 className="text-3d" style={{ fontSize: '1.5rem', marginBottom: '1.2rem' }}>Team Details</h3>
+                  <div className="profile-field">
+                    <label>Team Status</label>
+                    <div className="field-value" style={{ fontWeight: 'bold' }}>{viewProfileUser.teamName ? 'In a Team' : 'Individual'}</div>
+                  </div>
+                  {viewProfileUser.teamName && (
+                    <div className="profile-field">
+                      <label>Team Name</label>
+                      <div className="field-value" style={{ fontWeight: 'bold' }}>{viewProfileUser.teamName}</div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="profile-card">
+                  <h3 className="text-3d" style={{ fontSize: '1.5rem', marginBottom: '1.2rem' }}>Innovation Track</h3>
+                  <div className="profile-field">
+                    <label>Selected Track</label>
+                    <div className="field-value">
+                      <strong>
+                        {problemStatements.find(ps => ps.id === viewProfileUser.trackId)?.title || 'No track selected yet'}
+                      </strong>
+                    </div>
+                  </div>
+                </div>
+              </>
+            ) : null}
+
+            <div className="profile-card">
+              <h3 className="text-3d" style={{ fontSize: '1.5rem', marginBottom: '1.2rem' }}>Social Connectivity</h3>
+              <div className="social-connect-grid">
+                {viewProfileUser.socials.github ? (
+                  <a href={viewProfileUser.socials.github} target="_blank" rel="noreferrer" className="social-connect-item-view">
+                    <img src="icons/github.svg" alt="GitHub" />
+                    <span>View GitHub Profile</span>
+                  </a>
+                ) : (
+                  <span className="social-connect-item-view empty">
+                    <img src="icons/github.svg" alt="GitHub" />
+                    <span>No GitHub linked</span>
+                  </span>
+                )}
+                {viewProfileUser.socials.linkedin ? (
+                  <a href={viewProfileUser.socials.linkedin} target="_blank" rel="noreferrer" className="social-connect-item-view">
+                    <img src="icons/linkedin.svg" alt="LinkedIn" />
+                    <span>View LinkedIn Profile</span>
+                  </a>
+                ) : (
+                  <span className="social-connect-item-view empty">
+                    <img src="icons/linkedin.svg" alt="LinkedIn" />
+                    <span>No LinkedIn linked</span>
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* VLOGS / POSTS GRID */}
+            <div className="profile-card">
+              <h3 className="text-3d" style={{ fontSize: '1.5rem', marginBottom: '1.5rem' }}>Vlogs & Posts</h3>
+              {userProfilePosts.length === 0 ? (
+                <p style={{ opacity: 0.5, fontStyle: 'italic' }}>This user hasn't posted anything yet.</p>
+              ) : (
+                <div className="profile-vlogs-grid">
+                  {userProfilePosts.map(post => (
+                    <div key={post.id} className="profile-vlog-item" onClick={() => setFullscreenImageUrl(post.media_url)}>
+                      {post.media_type === 'video' ? (
+                        <div className="video-thumbnail-placeholder">
+                          <video src={post.media_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} muted />
+                          <div className="video-play-indicator">▶</div>
+                        </div>
+                      ) : (
+                        <img src={post.media_url} alt="vlog" />
+                      )}
+                      <div className="profile-vlog-hover">
+                        <span>⭐ {post.starCount}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       ) : null}
 
       <div className={`scroll-top-btn ${showScrollTop ? 'visible' : ''}`} onClick={scrollToTop}>
