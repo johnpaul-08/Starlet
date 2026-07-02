@@ -259,6 +259,10 @@ function App() {
   const [activeDoubleTapPostId, setActiveDoubleTapPostId] = useState(null);
   const [mentionSuggestions, setMentionSuggestions] = useState([]);
   const [isLoadingBlog, setIsLoadingBlog] = useState(false);
+  const [activePostMenuId, setActivePostMenuId] = useState(null);
+  const [profileTab, setProfileTab] = useState('posts');
+  const [userSavedPosts, setUserSavedPosts] = useState([]);
+  const [savedPostIds, setSavedPostIds] = useState(new Set());
 
   useEffect(() => {
     const handleResize = () => {
@@ -267,6 +271,21 @@ function App() {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  useEffect(() => {
+    const closeMenu = () => setActivePostMenuId(null);
+    window.addEventListener('click', closeMenu);
+    return () => window.removeEventListener('click', closeMenu);
+  }, []);
+
+  useEffect(() => {
+    if (session?.user?.id) {
+      fetchUserSavedPosts();
+    } else {
+      setUserSavedPosts([]);
+      setSavedPostIds(new Set());
+    }
+  }, [session]);
 
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -1280,6 +1299,21 @@ function App() {
         });
         setBlogPosts(mappedPosts);
       }
+
+      // Fetch user saves if logged in
+      if (session?.user?.id) {
+        try {
+          const { data: saves } = await supabase
+            .from('blog_post_saves')
+            .select('post_id')
+            .eq('user_id', session.user.id);
+          if (saves) {
+            setSavedPostIds(new Set(saves.map(s => s.post_id)));
+          }
+        } catch (err) {
+          console.warn('Saves table might not exist yet:', err.message);
+        }
+      }
     } catch (e) {
       console.error(e);
     } finally {
@@ -1591,6 +1625,112 @@ function App() {
         }
       }, 300);
     }
+  };
+
+  const fetchUserSavedPosts = async () => {
+    if (!session?.user?.id) return;
+    try {
+      const { data, error } = await supabase
+        .from('blog_post_saves')
+        .select(`
+          post_id,
+          blog_posts (
+            id,
+            user_id,
+            caption,
+            media_url,
+            media_type,
+            created_at,
+            profiles:user_id (full_name, avatar_url)
+          )
+        `)
+        .eq('user_id', session.user.id);
+
+      if (error) {
+        console.warn('Saves table might not exist yet:', error.message);
+        setUserSavedPosts([]);
+        return;
+      }
+      
+      if (data) {
+        const posts = data.map(item => item.blog_posts).filter(Boolean);
+        setUserSavedPosts(posts);
+      }
+    } catch (e) {
+      console.warn('Error fetching saved posts:', e);
+      setUserSavedPosts([]);
+    }
+  };
+
+  const handleSaveToggle = async (post) => {
+    if (!isLoggedIn || !session?.user?.id) {
+      setUploadAlert({ type: 'error', message: 'Please log in to save posts!' });
+      playErrorSound();
+      return;
+    }
+    
+    const isSaved = savedPostIds.has(post.id);
+    try {
+      if (isSaved) {
+        const { error } = await supabase
+          .from('blog_post_saves')
+          .delete()
+          .eq('user_id', session.user.id)
+          .eq('post_id', post.id);
+        if (error) throw error;
+        setUploadAlert({ type: 'success', message: 'Post removed from saved!' });
+      } else {
+        const { error } = await supabase
+          .from('blog_post_saves')
+          .insert([{ user_id: session.user.id, post_id: post.id }]);
+        if (error) throw error;
+        setUploadAlert({ type: 'success', message: 'Post saved successfully!' });
+      }
+      playSuccessSound();
+      
+      // Update local saves set and lists
+      const updatedSaves = new Set(savedPostIds);
+      if (isSaved) {
+        updatedSaves.delete(post.id);
+      } else {
+        updatedSaves.add(post.id);
+      }
+      setSavedPostIds(updatedSaves);
+      
+      fetchUserSavedPosts();
+    } catch (err) {
+      console.error(err);
+      setUploadAlert({ type: 'error', message: 'Failed to save post: ' + err.message });
+      playErrorSound();
+    }
+  };
+
+  const handleEditPostCaption = async (post) => {
+    const newCaption = prompt("Edit your post caption:", post.caption || '');
+    if (newCaption === null) return;
+    
+    try {
+      const { error } = await supabase
+        .from('blog_posts')
+        .update({ caption: newCaption })
+        .eq('id', post.id);
+        
+      if (error) throw error;
+      setUploadAlert({ type: 'success', message: 'Caption updated successfully!' });
+      playSuccessSound();
+      
+      fetchBlogPosts();
+      fetchUserProfilePosts(session.user.id);
+    } catch (err) {
+      console.error(err);
+      setUploadAlert({ type: 'error', message: 'Failed to update caption: ' + err.message });
+      playErrorSound();
+    }
+  };
+
+  const togglePostMenu = (postId, e) => {
+    e.stopPropagation();
+    setActivePostMenuId(activePostMenuId === postId ? null : postId);
   };
 
   const fetchUserProfilePosts = async (userId) => {
@@ -5756,29 +5896,63 @@ function App() {
                         {mentorRequests.length === 0 && <p className="empty-msg" style={{ opacity: 0.5 }}>No active help requests yet. Stay tuned!</p>}
                       </div>
                     </div>
-                    {/* MY VLOGS / POSTS GRID */}
+                    {/* MY VLOGS / POSTS / SAVED GRID */}
                     <div className="profile-card" style={{ marginTop: '2rem', padding: '2rem', background: 'rgba(255,255,255,0.05)', borderRadius: '20px' }}>
-                      <h3 className="text-3d" style={{ fontSize: '1.5rem', marginBottom: '1.5rem' }}>My Vlogs & Posts</h3>
-                      {userProfilePosts.length === 0 ? (
-                        <p style={{ opacity: 0.5, fontStyle: 'italic' }}>No posts uploaded yet. Head over to the Blog Feed to upload your first vlog!</p>
-                      ) : (
-                        <div className="profile-vlogs-grid">
-                          {userProfilePosts.map(post => (
-                            <div key={post.id} className="profile-vlog-item" onClick={() => setFullscreenImageUrl(post.media_url)}>
-                              {post.media_type === 'video' ? (
-                                <div className="video-thumbnail-placeholder">
-                                  <video src={post.media_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} muted />
-                                  <div className="video-play-indicator">▶</div>
-                                </div>
-                              ) : (
-                                <img src={post.media_url} alt="vlog" />
-                              )}
-                              <div className="profile-vlog-hover">
-                                <span>⭐ {post.starCount}</span>
+                      <div className="profile-tabs-header" style={{ display: 'flex', gap: '1.5rem', marginBottom: '1.5rem', borderBottom: '3px solid var(--text-navy)', paddingBottom: '0.5rem' }}>
+                        <h3 
+                          className={`profile-tab-title ${profileTab === 'posts' ? 'active' : ''}`} 
+                          onClick={() => setProfileTab('posts')}
+                          style={{ fontSize: '1.3rem', fontWeight: 'bold', margin: 0, cursor: 'pointer', opacity: profileTab === 'posts' ? 1 : 0.4 }}
+                        >
+                          MY POSTS
+                        </h3>
+                        <h3 
+                          className={`profile-tab-title ${profileTab === 'saved' ? 'active' : ''}`} 
+                          onClick={() => setProfileTab('saved')}
+                          style={{ fontSize: '1.3rem', fontWeight: 'bold', margin: 0, cursor: 'pointer', opacity: profileTab === 'saved' ? 1 : 0.4 }}
+                        >
+                          SAVED POSTS
+                        </h3>
+                      </div>
+                      
+                      {profileTab === 'posts' ? (
+                        userProfilePosts.length === 0 ? (
+                          <p style={{ opacity: 0.5, fontStyle: 'italic' }}>No posts uploaded yet. Head over to the Blog Feed to upload your first vlog!</p>
+                        ) : (
+                          <div className="profile-vlogs-grid">
+                            {userProfilePosts.map(post => (
+                              <div key={post.id} className="profile-vlog-item" onClick={() => setFullscreenImageUrl(post.media_url)}>
+                                {post.media_type === 'video' ? (
+                                  <div className="video-thumbnail-placeholder">
+                                    <video src={post.media_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} muted />
+                                    <div className="video-play-indicator">▶</div>
+                                  </div>
+                                ) : (
+                                  <img src={post.media_url} alt="vlog" />
+                                )}
                               </div>
-                            </div>
-                          ))}
-                        </div>
+                            ))}
+                          </div>
+                        )
+                      ) : (
+                        userSavedPosts.length === 0 ? (
+                          <p style={{ opacity: 0.5, fontStyle: 'italic' }}>No saved posts yet. Explore the feed and save vlogs to view them here!</p>
+                        ) : (
+                          <div className="profile-vlogs-grid">
+                            {userSavedPosts.map(post => (
+                              <div key={post.id} className="profile-vlog-item" onClick={() => setFullscreenImageUrl(post.media_url)}>
+                                {post.media_type === 'video' ? (
+                                  <div className="video-thumbnail-placeholder">
+                                    <video src={post.media_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} muted />
+                                    <div className="video-play-indicator">▶</div>
+                                  </div>
+                                ) : (
+                                  <img src={post.media_url} alt="vlog" />
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )
                       )}
                     </div>
                   </div>
@@ -6159,29 +6333,63 @@ function App() {
                     </form>
                   )}
                 </div>
-                {/* MY VLOGS / POSTS GRID */}
+                {/* MY VLOGS / POSTS / SAVED GRID */}
                 <div className="profile-card" style={{ marginTop: '2rem', padding: '2rem', background: 'rgba(255,255,255,0.05)', borderRadius: '20px' }}>
-                  <h3 className="text-3d" style={{ fontSize: '1.5rem', marginBottom: '1.5rem' }}>My Vlogs & Posts</h3>
-                  {userProfilePosts.length === 0 ? (
-                    <p style={{ opacity: 0.5, fontStyle: 'italic' }}>No posts uploaded yet. Head over to the Blog Feed to upload your first vlog!</p>
-                  ) : (
-                    <div className="profile-vlogs-grid">
-                      {userProfilePosts.map(post => (
-                        <div key={post.id} className="profile-vlog-item" onClick={() => setFullscreenImageUrl(post.media_url)}>
-                          {post.media_type === 'video' ? (
-                            <div className="video-thumbnail-placeholder">
-                              <video src={post.media_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} muted />
-                              <div className="video-play-indicator">▶</div>
-                            </div>
-                          ) : (
-                            <img src={post.media_url} alt="vlog" />
-                          )}
-                          <div className="profile-vlog-hover">
-                            <span>⭐ {post.starCount}</span>
+                  <div className="profile-tabs-header" style={{ display: 'flex', gap: '1.5rem', marginBottom: '1.5rem', borderBottom: '3px solid var(--text-navy)', paddingBottom: '0.5rem' }}>
+                    <h3 
+                      className={`profile-tab-title ${profileTab === 'posts' ? 'active' : ''}`} 
+                      onClick={() => setProfileTab('posts')}
+                      style={{ fontSize: '1.3rem', fontWeight: 'bold', margin: 0, cursor: 'pointer', opacity: profileTab === 'posts' ? 1 : 0.4 }}
+                    >
+                      MY POSTS
+                    </h3>
+                    <h3 
+                      className={`profile-tab-title ${profileTab === 'saved' ? 'active' : ''}`} 
+                      onClick={() => setProfileTab('saved')}
+                      style={{ fontSize: '1.3rem', fontWeight: 'bold', margin: 0, cursor: 'pointer', opacity: profileTab === 'saved' ? 1 : 0.4 }}
+                    >
+                      SAVED POSTS
+                    </h3>
+                  </div>
+                  
+                  {profileTab === 'posts' ? (
+                    userProfilePosts.length === 0 ? (
+                      <p style={{ opacity: 0.5, fontStyle: 'italic' }}>No posts uploaded yet. Head over to the Blog Feed to upload your first vlog!</p>
+                    ) : (
+                      <div className="profile-vlogs-grid">
+                        {userProfilePosts.map(post => (
+                          <div key={post.id} className="profile-vlog-item" onClick={() => setFullscreenImageUrl(post.media_url)}>
+                            {post.media_type === 'video' ? (
+                              <div className="video-thumbnail-placeholder">
+                                <video src={post.media_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} muted />
+                                <div className="video-play-indicator">▶</div>
+                              </div>
+                            ) : (
+                              <img src={post.media_url} alt="vlog" />
+                            )}
                           </div>
-                        </div>
-                      ))}
-                    </div>
+                        ))}
+                      </div>
+                    )
+                  ) : (
+                    userSavedPosts.length === 0 ? (
+                      <p style={{ opacity: 0.5, fontStyle: 'italic' }}>No saved posts yet. Explore the feed and save vlogs to view them here!</p>
+                    ) : (
+                      <div className="profile-vlogs-grid">
+                        {userSavedPosts.map(post => (
+                          <div key={post.id} className="profile-vlog-item" onClick={() => setFullscreenImageUrl(post.media_url)}>
+                            {post.media_type === 'video' ? (
+                              <div className="video-thumbnail-placeholder">
+                                <video src={post.media_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} muted />
+                                <div className="video-play-indicator">▶</div>
+                              </div>
+                            ) : (
+                              <img src={post.media_url} alt="vlog" />
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )
                   )}
                 </div>
               </div>
@@ -6548,24 +6756,40 @@ function App() {
                         </div>
                       </div>
                       
-                      {/* Delete option for Owner or Admin, otherwise Report option */}
-                      {(session?.user?.id && (post.user_id === session.user.id || user?.role === 'admin')) ? (
-                        <button className="blog-delete-btn" onClick={() => handleDeletePost(post.id)} title="Delete Post">
-                          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                            <polyline points="3 6 5 6 21 6"></polyline>
-                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                            <line x1="10" y1="11" x2="10" y2="17"></line>
-                            <line x1="14" y1="11" x2="14" y2="17"></line>
+                      {/* Options menu dropdown (3 vertical dots) */}
+                      <div className="blog-post-menu-container" style={{ position: 'relative' }}>
+                        <button className="blog-menu-dots-btn" onClick={(e) => togglePostMenu(post.id, e)} title="Options">
+                          <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                            <circle cx="12" cy="5" r="2" />
+                            <circle cx="12" cy="12" r="2" />
+                            <circle cx="12" cy="19" r="2" />
                           </svg>
                         </button>
-                      ) : (
-                        <button className="blog-report-btn" onClick={() => handleReportPost(post)} title="Report Post">
-                          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path>
-                            <line x1="4" y1="22" x2="4" y2="15"></line>
-                          </svg>
-                        </button>
-                      )}
+                        {activePostMenuId === post.id && (
+                          <div className="blog-post-menu-dropdown" onClick={(e) => e.stopPropagation()}>
+                            {(session?.user?.id && (post.user_id === session.user.id || user?.role === 'admin')) && (
+                              <div className="blog-menu-item delete" onClick={() => { handleDeletePost(post.id); setActivePostMenuId(null); }}>
+                                Delete
+                              </div>
+                            )}
+                            {(session?.user?.id && post.user_id === session.user.id) && (
+                              <div className="blog-menu-item edit" onClick={() => { handleEditPostCaption(post); setActivePostMenuId(null); }}>
+                                Edit Caption
+                              </div>
+                            )}
+                            {(!session?.user?.id || post.user_id !== session.user.id) && (
+                              <div className="blog-menu-item report" onClick={() => { handleReportPost(post); setActivePostMenuId(null); }}>
+                                Report
+                              </div>
+                            )}
+                            {session?.user?.id && (
+                              <div className="blog-menu-item save" onClick={() => { handleSaveToggle(post); setActivePostMenuId(null); }}>
+                                {savedPostIds.has(post.id) ? 'Unsave' : 'Save'}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </div>
 
                     {/* Post Content Media */}
@@ -6595,7 +6819,7 @@ function App() {
 
                     {/* Post Actions & Caption */}
                     <div className="blog-post-footer">
-                      <div className="blog-post-actions-row">
+                      <div className="blog-post-actions-row" style={{ marginBottom: '0.2rem' }}>
                         <div className="blog-post-actions-left">
                           <button 
                             className={`blog-star-btn ${post.isStarred ? 'starred' : ''}`}
@@ -6607,18 +6831,10 @@ function App() {
                             </svg>
                           </button>
                         </div>
-                        <button className="blog-action-btn blog-bookmark-btn" title="Save post" onClick={() => setUploadAlert({ type: 'success', message: 'Post saved to bookmarks!' })}>
-                          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--text-navy)" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
-                          </svg>
-                        </button>
                       </div>
 
                       {post.caption && (
                         <div className="blog-post-caption">
-                          <strong onClick={() => handleViewUserProfile(post.user_id)} style={{ cursor: 'pointer', marginRight: '8px' }}>
-                            {post.profiles?.full_name || 'Anonymous User'}
-                          </strong>
                           <span>{renderCaptionWithMentions(post.caption)}</span>
                         </div>
                       )}

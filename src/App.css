@@ -8237,6 +8237,114 @@ input:checked + .a11y-slider:before {
     }
 }
 
+/* Three dots vertical options menu */
+.blog-menu-dots-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-navy);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    transition: background-color 0.2s ease, transform 0.2s ease;
+    padding: 0;
+}
+
+.blog-menu-dots-btn:hover {
+    background-color: #f1f5f9;
+    transform: scale(1.1);
+}
+
+.blog-post-menu-dropdown {
+    position: absolute;
+    right: 0;
+    top: 42px;
+    background: #ffffff;
+    border: 3px solid var(--text-navy);
+    border-radius: 12px;
+    box-shadow: 4px 4px 0px var(--text-navy);
+    min-width: 140px;
+    z-index: 120;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.blog-menu-item {
+    padding: 0.75rem 1rem;
+    cursor: pointer;
+    text-align: left;
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.88rem;
+    color: var(--text-navy);
+    font-weight: bold;
+    border-bottom: 2.5px solid var(--text-navy);
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.blog-menu-item:last-child {
+    border-bottom: none;
+}
+
+.blog-menu-item:hover {
+    background-color: var(--yellow-star);
+}
+
+.blog-menu-item.delete:hover {
+    background-color: #ffe4e6;
+    color: #e11d48;
+}
+
+.blog-menu-item.report:hover {
+    background-color: #fef3c7;
+    color: #d97706;
+}
+
+/* Profile Post Grid Sub-Tabs */
+.profile-tabs-header {
+    border-bottom: 3.5px solid var(--text-navy);
+}
+
+.profile-tab-title {
+    font-family: 'Fredoka One', cursive;
+    color: var(--text-navy);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.profile-tab-title:hover {
+    transform: scale(1.02);
+}
+
+/* Mobile Post Card Layout - Full Bleed Screen Width */
+@media (max-width: 768px) {
+    .blog-feed-container {
+        padding: 1rem 0;
+    }
+    
+    .blog-posts-list {
+        gap: 1.5rem;
+    }
+    
+    .blog-post-card {
+        border-left: none !important;
+        border-right: none !important;
+        border-bottom: none !important;
+        border-top: 3.5px solid var(--text-navy) !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        width: 100% !important;
+    }
+    
+    .blog-post-card:hover {
+        transform: none !important;
+        box-shadow: none !important;
+    }
+}
+
+
 
 
 
