@@ -7575,6 +7575,28 @@ input:checked + .a11y-slider:before {
     transform: scale(1.1);
 }
 
+.blog-report-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    color: #64748b;
+    background: #f1f5f9;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    padding: 0;
+}
+
+.blog-report-btn:hover {
+    background: #fef3c7;
+    color: #d97706;
+    border-color: #fde68a;
+    transform: scale(1.1);
+}
+
 .blog-post-media {
     width: 100%;
     background: #f8fafc;

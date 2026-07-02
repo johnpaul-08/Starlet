@@ -306,6 +306,7 @@ function App() {
     }
   });
   const originalUser = useRef(null); // snapshot of last-saved profile for dirty-checking
+  const lastClickRef = useRef({ time: 0, post: null });
   const hasProfileChanged = originalUser.current
     ? JSON.stringify(user) !== JSON.stringify(originalUser.current)
     : false;
@@ -1544,6 +1545,52 @@ function App() {
     setTimeout(() => {
       setActiveDoubleTapPostId(null);
     }, 850);
+  };
+
+  const handleReportPost = async (post) => {
+    if (!isLoggedIn || !session?.user?.id) {
+      setUploadAlert({ type: 'error', message: 'Please log in to report posts!' });
+      playErrorSound();
+      return;
+    }
+    const confirmReport = window.confirm("Are you sure you want to report this post to the admins?");
+    if (!confirmReport) return;
+
+    try {
+      const issueDesc = `REPORT POST: Post ID [${post.id}] uploaded by ${post.profiles?.full_name || 'Anonymous'}. Media URL: ${post.media_url}. Reason: User flagged this content.`;
+      const { error } = await supabase
+        .from('system_issues')
+        .insert([{ user_id: session.user.id, description: issueDesc }]);
+
+      if (error) throw error;
+      setUploadAlert({ type: 'success', message: 'Thank you! The post has been reported to the admins.' });
+      playSuccessSound();
+    } catch (err) {
+      console.error(err);
+      setUploadAlert({ type: 'error', message: 'Failed to report post: ' + err.message });
+      playErrorSound();
+    }
+  };
+
+  const handlePostMediaClick = (post) => {
+    const currentTime = Date.now();
+    const timeDiff = currentTime - lastClickRef.current.time;
+    
+    if (lastClickRef.current.post === post.id && timeDiff < 300) {
+      handlePostDoubleTap(post.id);
+      lastClickRef.current.time = 0;
+    } else {
+      lastClickRef.current.time = currentTime;
+      lastClickRef.current.post = post.id;
+      
+      setTimeout(() => {
+        if (lastClickRef.current.time === currentTime) {
+          if (post.media_type === 'image') {
+            setFullscreenImageUrl(post.media_url);
+          }
+        }
+      }, 300);
+    }
   };
 
   const fetchUserProfilePosts = async (userId) => {
@@ -6501,8 +6548,8 @@ function App() {
                         </div>
                       </div>
                       
-                      {/* Delete option for Owner or Admin */}
-                      {(session?.user?.id && (post.user_id === session.user.id || user.role === 'admin')) && (
+                      {/* Delete option for Owner or Admin, otherwise Report option */}
+                      {(session?.user?.id && (post.user_id === session.user.id || user?.role === 'admin')) ? (
                         <button className="blog-delete-btn" onClick={() => handleDeletePost(post.id)} title="Delete Post">
                           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                             <polyline points="3 6 5 6 21 6"></polyline>
@@ -6511,13 +6558,20 @@ function App() {
                             <line x1="14" y1="11" x2="14" y2="17"></line>
                           </svg>
                         </button>
+                      ) : (
+                        <button className="blog-report-btn" onClick={() => handleReportPost(post)} title="Report Post">
+                          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path>
+                            <line x1="4" y1="22" x2="4" y2="15"></line>
+                          </svg>
+                        </button>
                       )}
                     </div>
 
                     {/* Post Content Media */}
                     <div 
                       className="blog-post-media" 
-                      onDoubleClick={() => handlePostDoubleTap(post.id)}
+                      onClick={() => handlePostMediaClick(post)}
                       style={{ position: 'relative' }}
                     >
                       {post.media_type === 'video' ? (
@@ -6526,7 +6580,6 @@ function App() {
                         <img 
                           src={post.media_url} 
                           alt="post upload" 
-                          onClick={() => setFullscreenImageUrl(post.media_url)} 
                           style={{ cursor: 'pointer' }}
                         />
                       )}
@@ -6553,27 +6606,12 @@ function App() {
                               <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
                             </svg>
                           </button>
-                          <button className="blog-action-btn blog-comment-btn" title="View comments" onClick={() => setUploadAlert({ type: 'success', message: 'Comments section coming soon in Starlet 5.0!' })}>
-                            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--text-navy)" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
-                            </svg>
-                          </button>
-                          <button className="blog-action-btn blog-share-btn" title="Share post" onClick={() => { navigator.clipboard.writeText(post.media_url); setUploadAlert({ type: 'success', message: 'Media link copied to clipboard!' }); playSuccessSound(); }}>
-                            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--text-navy)" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round">
-                              <line x1="22" y1="2" x2="11" y2="13"></line>
-                              <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-                            </svg>
-                          </button>
                         </div>
                         <button className="blog-action-btn blog-bookmark-btn" title="Save post" onClick={() => setUploadAlert({ type: 'success', message: 'Post saved to bookmarks!' })}>
                           <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--text-navy)" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
                           </svg>
                         </button>
-                      </div>
-
-                      <div className="blog-likes-row">
-                        <strong>{post.starCount} {post.starCount === 1 ? 'star' : 'stars'}</strong>
                       </div>
 
                       {post.caption && (
