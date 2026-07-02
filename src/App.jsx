@@ -6534,7 +6534,7 @@ function App() {
       )}
 
       {/* Floating Accessibility Widget */}
-      {!isMenuOpen && (
+      {!isMenuOpen && !showSplash && (
         <div className="a11y-widget-container" ref={a11yRef}>
         <button
           className="a11y-widget-btn"
