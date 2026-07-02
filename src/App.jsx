@@ -6980,7 +6980,15 @@ function App() {
                         accept="image/*,video/*"
                         onChange={(e) => {
                           const files = Array.from(e.target.files || []);
-                          setUploadFiles(prev => [...prev, ...files]);
+                          if (uploadFiles.length + files.length > 5) {
+                            alert("Maximum 5 photos or videos can be uploaded in a single post!");
+                            const remaining = 5 - uploadFiles.length;
+                            if (remaining > 0) {
+                              setUploadFiles(prev => [...prev, ...files.slice(0, remaining)]);
+                            }
+                          } else {
+                            setUploadFiles(prev => [...prev, ...files]);
+                          }
                         }}
                         style={{ display: 'none' }}
                       />
