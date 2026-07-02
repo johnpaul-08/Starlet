@@ -8321,11 +8321,11 @@ input:checked + .a11y-slider:before {
 /* Mobile Post Card Layout - Full Bleed Screen Width */
 @media (max-width: 768px) {
     .blog-feed-container {
-        padding: 1rem 0;
+        padding: 68px 0 0 0 !important;
     }
     
     .blog-posts-list {
-        gap: 1.5rem;
+        gap: 0px !important;
     }
     
     .blog-post-card {
