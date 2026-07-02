@@ -246,7 +246,15 @@ function App() {
 
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [showSplash, setShowSplash] = useState(true);
+  const [installPrompt, setInstallPrompt] = useState(null);
+  const [showInstallBanner, setShowInstallBanner] = useState(true);
+  const [showSplash, setShowSplash] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+      return !isStandalone;
+    }
+    return true;
+  });
   const [fadeOut, setFadeOut] = useState(false);
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [faqLimit, setFaqLimit] = useState(3);
@@ -299,7 +307,8 @@ function App() {
       hideImages: false,
       muteSound: false,
       readingMask: false,
-      textToSpeech: false
+      textToSpeech: false,
+      systemNotifications: false
     };
   });
 
@@ -590,12 +599,89 @@ function App() {
 
       if (isNew && !isDismissed) {
         playNotificationSound();
+
+        // Trigger system / push notification on phone/desktop OS notification bar
+        if (a11ySettings.systemNotifications && 'Notification' in window && Notification.permission === 'granted') {
+          if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.ready.then((registration) => {
+              registration.showNotification('Starlet 5.0 Announcement', {
+                body: settings.event_announcement,
+                icon: '/brand/pwa-icon-192.png',
+                badge: '/brand/favicon.png',
+                vibrate: [200, 100, 200],
+                tag: 'starlet-announcement',
+                renotify: true
+              });
+            }).catch((err) => {
+              console.error('Service Worker ready failed:', err);
+              new Notification('Starlet 5.0 Announcement', {
+                body: settings.event_announcement,
+                icon: '/brand/pwa-icon-192.png'
+              });
+            });
+          } else {
+            new Notification('Starlet 5.0 Announcement', {
+              body: settings.event_announcement,
+              icon: '/brand/pwa-icon-192.png'
+            });
+          }
+        }
       }
     } else {
       setIsBannerDismissed(true);
       prevAnnouncementRef.current = '';
     }
-  }, [settings.event_announcement]);
+  }, [settings.event_announcement, a11ySettings.systemNotifications]);
+
+  useEffect(() => {
+    // Request notification permission if running as a standalone app and permission is default
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+      if (isStandalone && Notification.permission === 'default') {
+        Notification.requestPermission().then((permission) => {
+          if (permission === 'granted') {
+            setA11ySettings((prev) => ({ ...prev, systemNotifications: true }));
+          }
+        });
+      }
+    }
+
+    // Pre-warm Speech Synthesis voices for mobile/PWA TTS compatibility
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      window.speechSynthesis.getVoices();
+      if (window.speechSynthesis.onvoiceschanged !== undefined) {
+        window.speechSynthesis.onvoiceschanged = () => {
+          window.speechSynthesis.getVoices();
+        };
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e) => {
+      e.preventDefault();
+      setInstallPrompt(e);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    window.addEventListener('appinstalled', () => {
+      setInstallPrompt(null);
+      console.log('Starlet PWA was installed successfully');
+    });
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (!installPrompt) return;
+    installPrompt.prompt();
+    const { outcome } = await installPrompt.userChoice;
+    console.log(`User response to install prompt: ${outcome}`);
+    setInstallPrompt(null);
+  };
 
   const [announcementInput, setAnnouncementInput] = useState('');
 
@@ -768,6 +854,8 @@ function App() {
       setShowScrollTop(window.scrollY > 500);
     };
     window.addEventListener('scroll', handleScroll);
+
+    if (!showSplash) return;
 
     // Splash Screen Dynamic Loader
     const assets = [
@@ -2566,6 +2654,23 @@ function App() {
         </div>
       )}
 
+      {/* PWA Install Banner */}
+      {installPrompt && showInstallBanner && (
+        <div className="pwa-install-banner">
+          <div className="pwa-install-banner-content">
+            <span className="pwa-install-logo">✦</span>
+            <div className="pwa-install-text-wrapper">
+              <span className="pwa-install-badge">APP UPGRADE</span>
+              <span className="pwa-install-text">Install the Starlet 5.0 application on your device for offline support and system notifications!</span>
+            </div>
+          </div>
+          <div className="pwa-install-actions">
+            <button className="pwa-install-dismiss" onClick={() => setShowInstallBanner(false)} aria-label="Dismiss install prompt">Not Now</button>
+            <button className="pwa-install-btn-accent" onClick={handleInstallClick} aria-label="Install App">Install</button>
+          </div>
+        </div>
+      )}
+
       {/* Floating Sparkles */}
       <div className="sparkle s1">✦</div>
       <div className="sparkle s2">✧</div>
@@ -2597,6 +2702,15 @@ function App() {
               <a href="#contact" className="nav-link" onClick={() => setIsMenuOpen(false)}>Contact Us</a>
 
               <div className="mobile-auth-wrapper">
+                {installPrompt && (
+                  <button 
+                    className="join-btn install-mobile-btn" 
+                    onClick={() => { handleInstallClick(); setIsMenuOpen(false); }} 
+                    style={{ width: '100%', marginBottom: '1.2rem', background: 'linear-gradient(135deg, var(--pink-primary) 0%, #8b5cf6 100%)', color: '#fff', border: '3.5px solid var(--text-navy)', boxShadow: '4px 4px 0px var(--text-navy)' }}
+                  >
+                    INSTALL APP ✦
+                  </button>
+                )}
                 {isLoggedIn ? (
                   <>
                     <div className="mobile-profile-link" onClick={() => { setActiveView('venue'); setIsMenuOpen(false); }}>
@@ -2619,6 +2733,15 @@ function App() {
 
             <div className="header-actions">
               <div className="desktop-auth-btns">
+                {installPrompt && (
+                  <button 
+                    className="join-btn install-desktop-btn" 
+                    onClick={handleInstallClick} 
+                    style={{ marginRight: '1rem', padding: '0.4rem 1rem', fontSize: '0.85rem', background: 'linear-gradient(135deg, var(--pink-primary) 0%, #8b5cf6 100%)', color: '#fff', border: '3px solid var(--text-navy)', boxShadow: '3px 3px 0px var(--text-navy)', height: 'fit-content' }}
+                  >
+                    INSTALL APP ✦
+                  </button>
+                )}
                 {isLoggedIn ? (
                   <>
                     <img
@@ -6461,24 +6584,26 @@ function App() {
                 </label>
               </div>
 
-              {/* Big Cursor */}
-              <div className="a11y-option-item">
-                <span className="a11y-option-label">Big Cursor</span>
-                <label className="a11y-switch">
-                  <input
-                    type="checkbox"
-                    checked={a11ySettings.bigCursor}
-                    onChange={(e) =>
-                      setA11ySettings((prev) => ({
-                        ...prev,
-                        bigCursor: e.target.checked
-                      }))
-                    }
-                    aria-label="Toggle Enlarged Mouse Pointer cursor"
-                  />
-                  <span className="a11y-slider"></span>
-                </label>
-              </div>
+              {/* Big Cursor (Desktop Only) */}
+              {!isMobile && (
+                <div className="a11y-option-item">
+                  <span className="a11y-option-label">Big Cursor</span>
+                  <label className="a11y-switch">
+                    <input
+                      type="checkbox"
+                      checked={a11ySettings.bigCursor}
+                      onChange={(e) =>
+                        setA11ySettings((prev) => ({
+                          ...prev,
+                          bigCursor: e.target.checked
+                        }))
+                      }
+                      aria-label="Toggle Enlarged Mouse Pointer cursor"
+                    />
+                    <span className="a11y-slider"></span>
+                  </label>
+                </div>
+              )}
 
               {/* Hide Images */}
               <div className="a11y-option-item">
@@ -6556,6 +6681,33 @@ function App() {
                 </label>
               </div>
 
+              {/* System Notifications */}
+              <div className="a11y-option-item">
+                <span className="a11y-option-label">System Notifications</span>
+                <label className="a11y-switch">
+                  <input
+                    type="checkbox"
+                    checked={a11ySettings.systemNotifications}
+                    onChange={async (e) => {
+                      const checked = e.target.checked;
+                      if (checked && 'Notification' in window) {
+                        const permission = await Notification.requestPermission();
+                        if (permission !== 'granted') {
+                          alert('Please enable notification permissions in your browser or device settings.');
+                          return;
+                        }
+                      }
+                      setA11ySettings((prev) => ({
+                        ...prev,
+                        systemNotifications: checked
+                      }));
+                    }}
+                    aria-label="Toggle System Notifications"
+                  />
+                  <span className="a11y-slider"></span>
+                </label>
+              </div>
+
               {/* Reset Button */}
               <button
                 className="a11y-reset-btn"
@@ -6570,7 +6722,8 @@ function App() {
                     hideImages: false,
                     muteSound: false,
                     readingMask: false,
-                    textToSpeech: false
+                    textToSpeech: false,
+                    systemNotifications: false
                   })
                 }
               >

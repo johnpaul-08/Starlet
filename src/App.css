@@ -7186,4 +7186,126 @@ input:checked + .a11y-slider:before {
     box-shadow: 2px 2px 0px var(--text-navy);
 }
 
+/* ==========================================
+   PWA INSTALL BANNER STYLES
+   ========================================== */
+
+.pwa-install-banner {
+    background: #8b5cf6;
+    border-bottom: 4px solid var(--text-navy);
+    color: #ffffff;
+    padding: 0.75rem 5%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: relative;
+    z-index: 1001;
+    font-family: 'Outfit', sans-serif;
+    animation: slideDown 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+    box-shadow: 0 4px 0px rgba(0, 51, 102, 0.1);
+}
+
+.pwa-install-banner-content {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex: 1;
+    overflow: hidden;
+}
+
+.pwa-install-logo {
+    font-size: 1.3rem;
+    animation: spin 6s linear infinite;
+    display: inline-block;
+    color: var(--yellow-star);
+}
+
+.pwa-install-text-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    flex: 1;
+    flex-wrap: wrap;
+}
+
+.pwa-install-badge {
+    background: var(--pink-primary);
+    color: #ffffff;
+    font-family: 'Fredoka One', cursive;
+    font-size: 0.75rem;
+    padding: 3px 10px;
+    border-radius: 12px;
+    border: 2px solid var(--text-navy);
+    box-shadow: 2px 2px 0px var(--text-navy);
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+
+.pwa-install-text {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #ffffff;
+    text-shadow: 1px 1px 0px var(--text-navy);
+}
+
+.pwa-install-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.pwa-install-dismiss {
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.8);
+    font-family: 'Outfit', sans-serif;
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+    padding: 6px 12px;
+    transition: color 0.2s;
+}
+
+.pwa-install-dismiss:hover {
+    color: #ffffff;
+    text-decoration: underline;
+}
+
+.pwa-install-btn-accent {
+    background: var(--yellow-star);
+    color: var(--text-navy);
+    border: 2.5px solid var(--text-navy);
+    font-family: 'Fredoka One', cursive;
+    font-size: 0.85rem;
+    padding: 6px 16px;
+    border-radius: 15px;
+    cursor: pointer;
+    box-shadow: 2.5px 2.5px 0px var(--text-navy);
+    transition: all 0.1s;
+    text-transform: uppercase;
+}
+
+.pwa-install-btn-accent:hover {
+    transform: translate(1px, 1px);
+    box-shadow: 1.5px 1.5px 0px var(--text-navy);
+}
+
+.pwa-install-btn-accent:active {
+    transform: translate(2.5px, 2.5px);
+    box-shadow: 0px 0px 0px var(--text-navy);
+}
+
+.install-mobile-btn, .install-desktop-btn {
+    animation: pulseGlow 2s infinite alternate;
+}
+
+@keyframes pulseGlow {
+    0% {
+        box-shadow: 0 0 5px rgba(255, 0, 127, 0.4);
+    }
+    100% {
+        box-shadow: 0 0 15px rgba(255, 0, 127, 0.8);
+    }
+}
+
 
