@@ -6948,12 +6948,12 @@ function App() {
                     {renderPostMedia(post)}
 
                     {/* Post Actions & Caption */}
-                    <div className="blog-post-footer" style={{ display: 'flex', alignItems: 'flex-start', gap: '0.8rem', padding: '0.8rem 1.25rem' }}>
+                    <div className="blog-post-footer" style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', padding: '0.8rem 1.25rem' }}>
                       <button 
                         className={`blog-star-btn ${post.isStarred ? 'starred' : ''}`}
                         onClick={() => handleStarToggle(post.id)}
                         title={post.isStarred ? 'Unstar post' : 'Star post'}
-                        style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: '2px' }}
+                        style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                       >
                         <svg className="star-icon-svg" viewBox="0 0 24 24" width="24" height="24" fill={post.isStarred ? "var(--yellow-star)" : "none"} stroke="var(--text-navy)" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round">
                           <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
@@ -7841,12 +7841,12 @@ function App() {
               {renderPostMedia(activeViewPost)}
 
               {/* Footer */}
-              <div className="blog-post-footer" style={{ display: 'flex', alignItems: 'flex-start', gap: '0.8rem', padding: '0.8rem 1rem' }}>
+              <div className="blog-post-footer" style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', padding: '0.8rem 1rem' }}>
                 <button 
                   className={`blog-star-btn ${activeViewPost.isStarred ? 'starred' : ''}`}
                   onClick={() => handleStarToggle(activeViewPost.id)}
                   title={activeViewPost.isStarred ? 'Unstar post' : 'Star post'}
-                  style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: '2px' }}
+                  style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                 >
                   <svg className="star-icon-svg" viewBox="0 0 24 24" width="24" height="24" fill={activeViewPost.isStarred ? "var(--yellow-star)" : "none"} stroke="var(--text-navy)" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round">
                     <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
