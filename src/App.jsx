@@ -1,3 +1,6 @@
+// ==========================================
+// 📦 IMPORTS & DEPENDENCIES
+// ==========================================
 import React, { useEffect, useState, useRef } from 'react';
 import './App.css';
 import { supabase, supabaseUrl, supabaseAnonKey } from './supabaseClient';
@@ -300,7 +303,19 @@ const MediaSlide = ({ item, idx, objectPosition = 'center center' }) => {
   );
 };
 
+// ==========================================
+// 🚀 MAIN APPLICATION COMPONENT
+// ==========================================
 function App() {
+
+  // ==========================================
+
+
+  // 🗄️ STATE MANAGEMENT (HOOKS)
+
+
+  // ==========================================
+
 
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -1533,6 +1548,15 @@ function App() {
     });
   };
 
+  // ==========================================
+
+
+  // ✍️ BLOG & POST HANDLERS
+
+
+  // ==========================================
+
+
   const handleUploadPost = async (e) => {
     e.preventDefault();
     if (!isLoggedIn || !session?.user?.id) {
@@ -2117,6 +2141,15 @@ function App() {
       .order('created_at', { ascending: true });
     if (data) setVenues(data);
   };
+
+  // ==========================================
+
+
+  // 🌐 DATA FETCHING FUNCTIONS (API CALLS)
+
+
+  // ==========================================
+
 
   const fetchProblemStatements = async () => {
     const { data } = await supabase.from('problem_statements').select('*').order('created_at');
@@ -3100,6 +3133,15 @@ function App() {
     }
   };
 
+  // ==========================================
+
+
+  // 👥 TEAM MANAGEMENT HANDLERS
+
+
+  // ==========================================
+
+
   const handleLeaveTeam = async () => {
     try {
       const { error } = await supabase
@@ -3136,6 +3178,15 @@ function App() {
       alert(error.message);
     }
   };
+
+  // ==========================================
+
+
+  // 🔐 AUTHENTICATION HANDLERS (LOGIN/SIGNUP)
+
+
+  // ==========================================
+
 
   const handleSignUp = async (e) => {
     e.preventDefault();
@@ -3445,6 +3496,18 @@ function App() {
       alert('Failed to generate certificate. Please try again.');
     }
   };
+
+
+  // ==========================================
+
+
+
+  // 📝 PROFILE EDITING HANDLERS
+
+
+
+  // ==========================================
+
 
 
   const updateProfile = async () => {
@@ -3918,6 +3981,15 @@ function App() {
           )}
         </header>
       </div>
+
+      // ==========================================
+
+
+      // 🖥️ RENDER: LANDING PAGE
+
+
+      // ==========================================
+
 
       {activeView === 'landing' ? (
         <>
@@ -4987,10 +5059,22 @@ function App() {
             </form>
           </div>
         </div>
+      // ==========================================
+
+      // 🖥️ RENDER: MY PROFILE PAGE (ATTENDEE/MENTOR)
+
+      // ==========================================
+
       ) : activeView === 'profile' ? (
         <div className={user.role === 'admin' && adminActiveTab === 'admin' ? "admin-page-wrapper" : "profile-container"}>
           {user.role === 'admin' && adminActiveTab === 'admin' ? (
             /* ADMIN PROFILE VIEW */
+            // ==========================================
+
+            // 🖥️ RENDER: ADMIN COMMAND CENTER
+
+            // ==========================================
+
             <div className="admin-dashboard-full">
               <div className="admin-header-row">
                 <div>
@@ -7430,6 +7514,12 @@ function App() {
         </div>
       ) : activeView === 'sponsors-overview' ? (
         <SponsorsPage onBack={() => setActiveView('landing')} />
+      // ==========================================
+
+      // 🖥️ RENDER: BLOG FEED
+
+      // ==========================================
+
       ) : activeView === 'blog' ? (
         <div className="blog-feed-container" style={{ paddingTop: '100px' }}>
           {isLoggedIn && (
@@ -7777,8 +7867,14 @@ function App() {
             </div>
           )}
         </div>
+      // ==========================================
+
+      // 🖥️ RENDER: 3RD PERSON PROFILE VIEWER
+
+      // ==========================================
+
       ) : activeView === 'profile-view' ? (
-        <div className="profile-container" style={{ paddingTop: '100px' }}>
+        <div className="profile-container" style={{ paddingTop: '120px' }}>
           <div className="profile-sidebar">
             <div className="profile-avatar">
               <img

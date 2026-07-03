@@ -8477,11 +8477,7 @@ input:checked + .a11y-slider:before {
     display: none;
 }
 
-
-
-
-
-
-
-
-
+.profile-card {
+   
+    padding: 1rem;
+}
