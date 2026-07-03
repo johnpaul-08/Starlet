@@ -328,6 +328,7 @@ function App() {
   const [profileTab, setProfileTab] = useState('posts');
   const [userSavedPosts, setUserSavedPosts] = useState([]);
   const [savedPostIds, setSavedPostIds] = useState(new Set());
+  const [magicLinkState, setMagicLinkState] = useState({}); // { [userId]: 'loading' | 'done' | null }
   const [uploadFiles, setUploadFiles] = useState([]);
   const [activeViewPost, setActiveViewPost] = useState(null);
   const [carouselIndices, setCarouselIndices] = useState({});
@@ -2220,6 +2221,38 @@ function App() {
       .eq('status', 'open')
       .order('created_at', { ascending: false });
     if (issues) setSystemIssues(issues);
+  };
+
+  // ── Admin: Generate single-use magic login link for a participant ──────────
+  // Calls the Supabase Edge Function which uses service_role (safe, server-side).
+  // The resulting link is copied to clipboard so admin can share via WhatsApp.
+  const handleGenerateMagicLink = async (u) => {
+    setMagicLinkState(prev => ({ ...prev, [u.id]: 'loading' }));
+    try {
+      const { data: { session: adminSession } } = await supabase.auth.getSession();
+      const res = await fetch(
+        `${supabaseUrl}/functions/v1/generate-magic-link`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${adminSession.access_token}`,
+            'apikey': supabaseAnonKey,
+          },
+          body: JSON.stringify({ email: u.email }),
+        }
+      );
+      const json = await res.json();
+      if (!res.ok || json.error) throw new Error(json.error || 'Failed to generate link');
+
+      const link = json.magic_link;
+      // Copy to clipboard
+      try { await navigator.clipboard.writeText(link); } catch (_) {}
+      setMagicLinkState(prev => ({ ...prev, [u.id]: { link } }));
+    } catch (err) {
+      alert('Magic link failed: ' + err.message);
+      setMagicLinkState(prev => ({ ...prev, [u.id]: null }));
+    }
   };
 
   const getDisplayTeamName = (teamName) => {
@@ -5821,7 +5854,7 @@ function App() {
                                                   }
                                                 </span>
                                               </div>
-                                              {u.user_role === 'mentor' && (
+                                                 {u.user_role === 'mentor' && (
                                                 <>
                                                   <div className="user-detail-item">
                                                     <span className="detail-label">LinkedIn</span>
@@ -5841,6 +5874,48 @@ function App() {
                                               )}
                                             </div>
                                           </div>
+
+                                          {/* ── Magic Login Link ── */}
+                                          <div style={{ marginTop: '1rem', padding: '0.75rem 1rem', background: 'rgba(255,0,127,0.06)', borderRadius: '10px', border: '1.5px dashed var(--pink-primary)' }}>
+                                            <div style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--pink-primary)', marginBottom: '0.5rem' }}>🔗 PARTICIPANT LOGIN BYPASS</div>
+                                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.6rem' }}>Generate a one-time magic link for this user (expires in 1 hour). Share it via WhatsApp or show them on screen. No email needed.</div>
+                                            {magicLinkState[u.id]?.link ? (
+                                              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                                <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '0.5rem 0.75rem', fontSize: '0.7rem', wordBreak: 'break-all', color: '#2d3748', fontFamily: 'monospace', maxHeight: '60px', overflowY: 'auto' }}>
+                                                  {magicLinkState[u.id].link}
+                                                </div>
+                                                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                                  <button
+                                                    className="btn-small accept"
+                                                    onClick={() => { navigator.clipboard.writeText(magicLinkState[u.id].link); }}
+                                                  >📋 Copy Link</button>
+                                                  <a
+                                                    href={`https://wa.me/?text=${encodeURIComponent(`Hi ${u.full_name}! Here is your one-time Starlet login link (valid 1 hour):\n${magicLinkState[u.id].link}`)}`}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    style={{ textDecoration: 'none' }}
+                                                  >
+                                                    <button className="btn-small accept" style={{ background: '#25D366', borderColor: '#25D366' }}>💬 Send WhatsApp</button>
+                                                  </a>
+                                                  <button
+                                                    className="btn-small delete"
+                                                    onClick={() => setMagicLinkState(prev => ({ ...prev, [u.id]: null }))}
+                                                  >Clear</button>
+                                                </div>
+                                                <div style={{ fontSize: '0.68rem', color: '#e53e3e', fontStyle: 'italic' }}>⚠️ Single-use — once opened it expires. Generate a new one if needed.</div>
+                                              </div>
+                                            ) : (
+                                              <button
+                                                className="btn-small accept"
+                                                disabled={magicLinkState[u.id] === 'loading'}
+                                                onClick={(e) => { e.stopPropagation(); handleGenerateMagicLink(u); }}
+                                                style={{ fontSize: '0.8rem' }}
+                                              >
+                                                {magicLinkState[u.id] === 'loading' ? '⏳ Generating…' : '🔗 Generate Login Link'}
+                                              </button>
+                                            )}
+                                          </div>
+
                                         </div>
                                       </td>
                                     </tr>
