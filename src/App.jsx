@@ -3809,11 +3809,6 @@ function App() {
             <div className="logo-circle" onClick={() => setActiveView('landing')} style={{ cursor: 'pointer' }}>
               <img src="brand/Logo.png" alt="Starlet Logo" />
             </div>
-            {(activeView === 'profile' || activeView === 'sponsors-overview' || activeView === 'audit-logs' || activeView === 'blog' || activeView === 'profile-view' || activeView === 'venue' || isMobile) && (
-              <span className="logo-text-starlet" onClick={() => setActiveView('landing')} style={{ cursor: 'pointer' }}>
-                Starlet
-              </span>
-            )}
           </div>
 
           {(activeView === 'landing' || activeView === 'blog' || activeView === 'profile-view' || activeView === 'venue') && (
