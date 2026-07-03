@@ -783,7 +783,7 @@ function App() {
       const desc = (fd.get('contactDesc') || '').toString().trim();
       const subject = `Enquiry regarding Starlet from ${name || email || 'a participant'}`;
       const body = `${desc}\n\nFrom: ${name}${email ? ` <${email}>` : ''}`;
-      const recipient = 'hello@mindempowered.com';
+      const recipient = 'mindempowered2020@gmail.com';
       const mailto = `mailto:${recipient}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
       window.location.href = mailto;
     } catch (err) {
