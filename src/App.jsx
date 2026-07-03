@@ -1564,9 +1564,9 @@ function App() {
       setUploadAlert({ type: 'error', message: 'Please log in to upload posts!' });
       return;
     }
-    if (uploadFiles.length === 0) {
+    if (uploadFiles.length === 0 && !uploadCaption.trim()) {
       playErrorSound();
-      setUploadAlert({ type: 'error', message: 'Please select at least one photo or video file to upload!' });
+      setUploadAlert({ type: 'error', message: 'Please write a caption or select a file to upload.' });
       return;
     }
 
@@ -1598,8 +1598,8 @@ function App() {
         setUploadProgress(Math.round(((i + 1) / totalFiles) * 90) + 10);
       }
 
-      const mediaUrlPayload = mediaItems.length === 1 ? mediaItems[0].url : JSON.stringify(mediaItems);
-      const mediaTypePayload = mediaItems.length === 1 ? mediaItems[0].type : 'carousel';
+      const mediaUrlPayload = mediaItems.length === 0 ? null : (mediaItems.length === 1 ? mediaItems[0].url : JSON.stringify(mediaItems));
+      const mediaTypePayload = mediaItems.length === 0 ? 'text' : (mediaItems.length === 1 ? mediaItems[0].type : 'carousel');
 
       // Build positions array — only for images; videos don't need pan
       const positionsPayload = uploadFiles.map((file, idx) => {
@@ -1851,6 +1851,7 @@ function App() {
   };
 
   const renderPostMedia = (post) => {
+    if (post.media_type === 'text' || !post.media_url) return null;
     let mediaItems = [];
     try {
       if (post.media_type === 'carousel' || post.media_url.startsWith('[')) {
@@ -2056,13 +2057,27 @@ function App() {
     setActivePostMenuId(activePostMenuId === postId ? null : postId);
   };
 
-  const fetchUserProfilePosts = async (userId) => {
+  const fetchUserProfilePosts = async (userId, targetFullName = null) => {
     try {
-      const { data, error } = await supabase
+      let resolvedName = targetFullName;
+      if (!resolvedName) {
+        const { data: profile } = await supabase.from('profiles').select('full_name').eq('id', userId).single();
+        if (profile) resolvedName = profile.full_name;
+      }
+
+      let query = supabase
         .from('blog_posts')
         .select('*, profiles:user_id(full_name, avatar_url), blog_post_stars(user_id)')
-        .eq('user_id', userId)
         .order('created_at', { ascending: false });
+
+      if (resolvedName) {
+        const mentionTag = `@${resolvedName.replace(/\s+/g, '_')}`;
+        query = query.or(`user_id.eq.${userId},caption.ilike.%${mentionTag}%`);
+      } else {
+        query = query.eq('user_id', userId);
+      }
+      
+      const { data, error } = await query;
 
       if (data) {
         const mappedPosts = data.map(post => {
@@ -7516,6 +7531,7 @@ function App() {
       // ==========================================
 
       ) : activeView === 'blog' ? (
+        <div className="blog-page-layout">
         <div className="blog-feed-container" style={{ paddingTop: '100px' }}>
           {isLoggedIn && (
             <button
@@ -7862,10 +7878,11 @@ function App() {
             </div>
           )}
         </div>
+        
+
+        </div>
       // ==========================================
-
       // 🖥️ RENDER: 3RD PERSON PROFILE VIEWER
-
       // ==========================================
 
       ) : activeView === 'profile-view' ? (

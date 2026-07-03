@@ -7457,11 +7457,18 @@ input:checked + .a11y-slider:before {
    BLOG FEED & VLOGS GALLERY STYLES
    ========================================================================== */
 
+/* Default / Mobile styles */
+.blog-page-layout {
+    display: block;
+}
+
 .blog-feed-container {
     max-width: 800px;
     margin: 0 auto;
     padding: 2rem 1.5rem;
 }
+
+
 
 .blog-header-row {
     display: flex;
@@ -8422,6 +8429,51 @@ input:checked + .a11y-slider:before {
     .blog-post-card:hover {
         transform: none !important;
         box-shadow: none !important;
+    }
+}
+
+/* Desktop Continuous Feed Layout */
+@media (min-width: 769px) {
+    .blog-page-layout {
+        display: flex;
+        justify-content: flex-start;
+        align-items: flex-start;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 2rem;
+    }
+
+    .blog-feed-container {
+        flex: 1;
+        max-width: 650px;
+        margin: 0;
+        padding: 2rem 0;
+    }
+    
+    .blog-posts-list {
+        background: #ffffff;
+        border: 3.5px solid var(--text-navy);
+        border-radius: 20px;
+        box-shadow: 6px 6px 0px var(--text-navy);
+        overflow: hidden;
+        gap: 0 !important;
+    }
+    
+    .blog-post-card {
+        border: none;
+        border-bottom: 3.5px solid var(--text-navy);
+        border-radius: 0;
+        box-shadow: none;
+        margin-bottom: 0;
+    }
+    
+    .blog-post-card:last-child {
+        border-bottom: none;
+    }
+    
+    .blog-post-card:hover {
+        transform: none;
+        box-shadow: none;
     }
 }
 
