@@ -4899,7 +4899,7 @@ function App() {
 
                       {/* Jury Showcase (Top) */}
                       <div className="jury-arcade-deck">
-                        <h3 className="arcade-subtitle">👾 JURY SELECTION GRID 👾</h3>
+                        <h3 className="arcade-subtitle">JURY GRID</h3>
                         <div className="arcade-character-grid">
                           {judgesData.map((judge, index) => (
                             <div key={judge.id} className="arcade-char-card">
@@ -4931,7 +4931,7 @@ function App() {
 
                       {/* Prizes Showcase (Bottom) */}
                       <div className="prizes-ticket-rack">
-                        <h3 className="arcade-subtitle">🎫 CLAIM ARCADE PRIZE TICKETS 🎫</h3>
+                        <h3 className="arcade-subtitle">CLAIM STARLET PRIZE TICKETS</h3>
                         <div className="arcade-tickets-grid">
                           <div className="arcade-ticket rank-1">
                             <div className="ticket-left">
@@ -4983,7 +4983,9 @@ function App() {
 
                           <div className="arcade-ticket rank-innovation">
                             <div className="ticket-left">
-                              <div className="ticket-rank">💡</div>
+                              <div className="ticket-rank">
+                                <img src="svg/emoji/idea.svg" alt="Innovation" style={{ width: '32px', height: '32px' }} />
+                              </div>
                             </div>
                             <div className="ticket-right">
                               <div className="ticket-header">
