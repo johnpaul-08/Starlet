@@ -1031,11 +1031,18 @@ function App() {
   };
 
   const activeScannerRef = useRef(null);
+  const scanTimeoutRef = useRef(null);
 
   const handleVerifyCheckin = async (userId) => {
     try {
       setScanResult({ success: true, message: 'Verifying with database...' });
       
+      // Clear any pending timeout first
+      if (scanTimeoutRef.current) {
+        clearTimeout(scanTimeoutRef.current);
+        scanTimeoutRef.current = null;
+      }
+
       // 1. Fetch user to verify
       const { data: profile, error: fetchError } = await supabase
         .from('profiles')
@@ -1050,6 +1057,11 @@ function App() {
       
       if (profile.is_approved) {
         setScanResult({ success: true, message: `${profile.full_name} is already checked in!`, user: profile });
+        
+        // Auto-clear notification after 3 seconds so the screen is ready for the next attendee
+        scanTimeoutRef.current = setTimeout(() => {
+          setScanResult(null);
+        }, 3000);
         return;
       }
 
@@ -1076,6 +1088,11 @@ function App() {
       
       // 4. Reload local user state to sync with dashboard grids & sheets
       fetchAllUsers();
+      
+      // Auto-clear notification after 3 seconds so the screen is ready for the next attendee
+      scanTimeoutRef.current = setTimeout(() => {
+        setScanResult(null);
+      }, 3000);
     } catch (e) {
       console.error(e);
       setScanResult({ success: false, message: 'Verification Error: ' + e.message });
@@ -1085,14 +1102,15 @@ function App() {
   useEffect(() => {
     if (isScannerOpen) {
       const timer = setTimeout(() => {
-        if (window.Html5QrcodeScanner) {
-          const scanner = new window.Html5QrcodeScanner(
-            "checkin-qr-reader", 
-            { fps: 10, qrbox: { width: 220, height: 220 } },
-            false
-          );
+        if (window.Html5Qrcode) {
+          const html5Qrcode = new window.Html5Qrcode("checkin-qr-reader");
           
-          scanner.render(
+          html5Qrcode.start(
+            { facingMode: "environment" },
+            {
+              fps: 10,
+              qrbox: { width: 220, height: 220 }
+            },
             async (decodedText) => {
               playNotificationSound();
               await handleVerifyCheckin(decodedText);
@@ -1100,15 +1118,23 @@ function App() {
             (error) => {
               // Ignore standard frame scan errors
             }
-          );
+          ).catch((err) => {
+            console.error("Camera access failed:", err);
+            setScanResult({ success: false, message: "Camera permission denied or not found." });
+          });
           
-          activeScannerRef.current = scanner;
+          activeScannerRef.current = html5Qrcode;
         } else {
           setScanResult({ success: false, message: 'Camera Scanner Library not loaded yet. Please wait a second...' });
         }
       }, 300);
       
-      return () => clearTimeout(timer);
+      return () => {
+        clearTimeout(timer);
+        if (scanTimeoutRef.current) {
+          clearTimeout(scanTimeoutRef.current);
+        }
+      };
     }
   }, [isScannerOpen]);
 
