@@ -961,18 +961,7 @@ function App() {
 
     const handleAppInstalled = () => {
       setInstallPrompt(null);
-      setInstallProgress(100);
-      
-      setTimeout(() => {
-        setIsInstalling(false);
-        setInstallComplete(true);
-        console.log('Starlet PWA was installed successfully');
-        
-        setTimeout(() => {
-          setInstallComplete(false);
-          setActiveView('landing');
-        }, 2500);
-      }, 800);
+      console.log('Starlet PWA was installed successfully');
     };
 
     window.addEventListener('appinstalled', handleAppInstalled);
@@ -984,34 +973,13 @@ function App() {
   }, []);
 
   const handleInstallClick = async () => {
-    if (installPrompt) {
-      installPrompt.prompt();
-      const { outcome } = await installPrompt.userChoice;
-      console.log(`User response to install prompt: ${outcome}`);
-      if (outcome === 'accepted') {
-        setIsInstalling(true);
-        setInstallProgress(0);
-        
-        let progress = 0;
-        const interval = setInterval(() => {
-          progress += Math.floor(Math.random() * 4) + 1;
-          if (progress >= 95) {
-            progress = 95;
-            clearInterval(interval);
-          }
-          setInstallProgress(progress);
-        }, 120);
-      } else {
-        setInstallPrompt(null);
-      }
-    } else {
-      // Universal simulated progress overlay for iOS, Safari, Firefox, etc.
+    const runUnifiedProgressLoader = () => {
       setIsInstalling(true);
       setInstallProgress(0);
       
       let progress = 0;
       const interval = setInterval(() => {
-        progress += Math.floor(Math.random() * 8) + 2;
+        progress += Math.floor(Math.random() * 4) + 1;
         if (progress >= 100) {
           progress = 100;
           clearInterval(interval);
@@ -1027,6 +995,20 @@ function App() {
         }
         setInstallProgress(progress);
       }, 150);
+    };
+
+    if (installPrompt) {
+      installPrompt.prompt();
+      const { outcome } = await installPrompt.userChoice;
+      console.log(`User response to install prompt: ${outcome}`);
+      if (outcome === 'accepted') {
+        runUnifiedProgressLoader();
+      } else {
+        setInstallPrompt(null);
+      }
+    } else {
+      // Universal fallback for iOS Safari, Firefox, and other search engines
+      runUnifiedProgressLoader();
     }
   };
 
