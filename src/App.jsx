@@ -4668,7 +4668,7 @@ function App() {
                                   </div>
                                   <div className="timeline-event" style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed rgba(0,0,0,0.15)', paddingBottom: '0.4rem', gap: '1.5rem' }}>
                                     <strong style={{ minWidth: '150px', color: 'var(--pink-primary)', textAlign: 'left' }}>9:30am onwards</strong>
-                                    <span style={{ flex: 1, textAlign: 'left', fontWeight: 'bold' }}>Hackathon Begins <img src="svg/emoji/rocket.svg" className="emoji-icon" alt="Begins" /></span>
+                                    <span style={{ flex: 1, textAlign: 'left', fontWeight: 'bold' }}>Hackathon Begins <img src="svg/emoji/energy.svg" className="emoji-icon" alt="Begins" /></span>
                                   </div>
                                   <div className="timeline-event" style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed rgba(0,0,0,0.15)', paddingBottom: '0.4rem', gap: '1.5rem' }}>
                                     <strong style={{ minWidth: '150px', color: 'var(--text-navy)', textAlign: 'left' }}>11:00 AM</strong>
