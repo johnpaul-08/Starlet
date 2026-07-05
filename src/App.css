@@ -8756,3 +8756,40 @@ input:checked + .a11y-slider:before {
         border: 1px solid rgba(51, 102, 255, 0.15);
     }
 }
+
+/* Supporters & Sponsors Custom Squeezed Rows for Desktop */
+@media (min-width: 1001px) {
+    .supporters-row-grid {
+        flex-wrap: nowrap !important;
+        justify-content: center !important;
+        max-width: 1200px;
+        margin: 2.5rem auto 4rem !important;
+        gap: 2rem !important;
+    }
+    .supporters-row-grid .partner-card-square {
+        width: 220px !important;
+        height: 220px !important;
+        flex-shrink: 1 !important;
+    }
+    .supporters-row-grid .partner-card-wide {
+        width: 440px !important;
+        height: 220px !important;
+        flex-shrink: 1 !important;
+    }
+
+    .sponsors-row-grid {
+        max-width: 1140px;
+        margin: 2rem auto 4rem !important;
+        gap: 2rem !important;
+    }
+    .sponsors-row-grid .partner-card-wide {
+        width: 400px !important;
+        height: 200px !important;
+        flex-shrink: 1 !important;
+    }
+    .sponsors-row-grid .partner-card-square {
+        width: 200px !important;
+        height: 200px !important;
+        flex-shrink: 1 !important;
+    }
+}

@@ -627,6 +627,8 @@ function App() {
   const [showReccaaPopup, setShowReccaaPopup] = useState(false);
   const [showNSSPopup, setShowNSSPopup] = useState(false);
   const [showWECPopup, setShowWECPopup] = useState(false);
+  const [showFrenchToastPopup, setShowFrenchToastPopup] = useState(false);
+  const [showESAFPopup, setShowESAFPopup] = useState(false);
 
   const playClickSound = () => {
     if (!isSoundEnabled || a11ySettings.muteSound) return;
@@ -4498,7 +4500,7 @@ function App() {
                       </div>
 
                       {/* Organizers & Collaborators Grid */}
-                      <div className="partners-grid-custom" ref={partnersRef}>
+                      <div className="partners-grid-custom supporters-row-grid" ref={partnersRef}>
 
                         <div className="partner-card-wide partner-card-extra-wide clickable" onClick={() => setShowAdiPopup(true)}>
                           <span className="badge-main" style={{ position: 'absolute', top: '-15px', left: '50%', transform: 'translateX(-50%) rotate(-2deg)', zIndex: 2, background: 'var(--pink-primary)' }}>COLLABORATOR</span>
@@ -4515,19 +4517,17 @@ function App() {
                           </div>
                         </div>
 
-                        <div className="partner-card-wide clickable" onClick={() => setShowLTPopup(true)} style={{ padding: '1.5rem 1.5rem 1rem' }}>
+                        <div className="partner-card-square clickable" onClick={() => setShowLTPopup(true)}>
                           <span className="badge-main" style={{ position: 'absolute', top: '-15px', left: '50%', transform: 'translateX(-50%) rotate(-2deg)', zIndex: 2, background: 'var(--pink-primary)' }}>OUTREACH PARTNER</span>
-                          <img src="collaborators/LT.png" alt="Lenient Tree" loading="lazy" style={{ height: '185px', width: 'auto', maxWidth: '100%', objectFit: 'contain', marginTop: '-1.6rem', marginBottom: '0.2rem' }} />
-                          <div style={{ textAlign: 'center' }}>
-                            <p style={{ fontSize: '0.8rem', color: '#555', fontWeight: 'bold', margin: 0 }}>OUTREACH PARTNER</p>
+                          <div style={{ position: 'absolute', top: '25px', left: '25px', right: '25px', bottom: '25px', overflow: 'hidden', zIndex: 1 }}>
+                            <img src="collaborators/LT.png" alt="Lenient Tree" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                           </div>
                         </div>
 
-                        <div className="partner-card-wide clickable" onClick={() => setShowWECPopup(true)} style={{ padding: '1.5rem 1.5rem 1rem' }}>
+                        <div className="partner-card-square clickable" onClick={() => setShowWECPopup(true)}>
                           <span className="badge-main" style={{ position: 'absolute', top: '-15px', left: '50%', transform: 'translateX(-50%) rotate(-2deg)', zIndex: 2, background: 'var(--pink-primary)' }}>OUTREACH PARTNER</span>
-                          <img src="collaborators/Women Empowerement Cell.png" alt="Women Empowerment Cell" loading="lazy" style={{ height: '130px', width: 'auto', maxWidth: '100%', objectFit: 'contain', marginTop: '0.6rem' }} />
-                          <div style={{ textAlign: 'center' }}>
-                            <p style={{ fontSize: '0.8rem', color: '#555', fontWeight: 'bold', margin: 0 }}>OUTREACH PARTNER</p>
+                          <div style={{ position: 'absolute', top: '25px', left: '25px', right: '25px', bottom: '25px', overflow: 'hidden', zIndex: 1 }}>
+                            <img src="collaborators/Women Empowerement Cell.png" alt="Women Empowerment Cell" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                           </div>
                         </div>
                       </div>
@@ -4535,7 +4535,7 @@ function App() {
                       {/* Sponsors Section */}
                       <div style={{ textAlign: 'center', marginTop: '4rem' }}>
                         <h3 className="handwritten" style={{ fontSize: '2.5rem', color: 'var(--text-navy)', marginBottom: '1.5rem' }}>Sponsors</h3>
-                        <div className="partners-grid-custom" style={{ marginTop: '2rem' }}>
+                        <div className="partners-grid-custom sponsors-row-grid" style={{ marginTop: '2rem' }}>
                           {/* Synthite */}
                           <div className="partner-card-wide clickable" onClick={() => setShowSynthitePopup(true)} style={{ padding: '1.5rem 1.5rem 1rem' }}>
                             <span className="badge-main" style={{ position: 'absolute', top: '-15px', left: '50%', transform: 'translateX(-50%) rotate(-2deg)', zIndex: 2, background: 'var(--pink-primary)' }}>PRIZE SPONSOR</span>
@@ -4546,11 +4546,10 @@ function App() {
                           </div>
 
                           {/* Reccaa Club */}
-                          <div className="partner-card-wide clickable" onClick={() => setShowReccaaPopup(true)} style={{ padding: '1.5rem 1.5rem 1rem' }}>
+                          <div className="partner-card-square clickable" onClick={() => setShowReccaaPopup(true)}>
                             <span className="badge-main" style={{ position: 'absolute', top: '-15px', left: '50%', transform: 'translateX(-50%) rotate(-2deg)', zIndex: 2, background: 'var(--pink-primary)' }}>SPONSOR</span>
-                            <img src="collaborators/Reccaa club.png" alt="Reccaa Club" loading="lazy" style={{ height: '145px', width: 'auto', maxWidth: '100%', objectFit: 'contain', marginTop: '0.1rem' }} />
-                            <div style={{ textAlign: 'center' }}>
-                              <p style={{ fontSize: '0.8rem', color: '#555', fontWeight: 'bold', margin: 0 }}>SPONSOR</p>
+                            <div style={{ position: 'absolute', top: '25px', left: '25px', right: '25px', bottom: '25px', overflow: 'hidden', zIndex: 1 }}>
+                              <img src="collaborators/Reccaa club.png" alt="Reccaa Club" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                             </div>
                           </div>
 
@@ -4558,6 +4557,24 @@ function App() {
                           <div className="partner-card-wide clickable" onClick={() => setShowAikyamPopup(true)} style={{ padding: '1.5rem 1.5rem 1rem' }}>
                             <span className="badge-main" style={{ position: 'absolute', top: '-15px', left: '50%', transform: 'translateX(-50%) rotate(-2deg)', zIndex: 2, background: 'var(--pink-primary)' }}>SPONSOR</span>
                             <img src="collaborators/aikyam.webp" alt="Aikyam Space" loading="lazy" style={{ height: '90px', width: 'auto', maxWidth: '100%', objectFit: 'contain', marginTop: '1.5rem' }} />
+                            <div style={{ textAlign: 'center' }}>
+                              <p style={{ fontSize: '0.8rem', color: '#555', fontWeight: 'bold', margin: 0 }}>SPONSOR</p>
+                            </div>
+                          </div>
+
+                          {/* French Toast */}
+                          <div className="partner-card-wide clickable" onClick={() => setShowFrenchToastPopup(true)} style={{ padding: '1.5rem 1.5rem 1rem' }}>
+                            <span className="badge-main" style={{ position: 'absolute', top: '-15px', left: '50%', transform: 'translateX(-50%) rotate(-2deg)', zIndex: 2, background: 'var(--pink-primary)' }}>SPONSOR</span>
+                            <img src="collaborators/french toast.png" alt="French Toast" loading="lazy" style={{ height: '90px', width: 'auto', maxWidth: '100%', objectFit: 'contain', marginTop: '1.5rem' }} />
+                            <div style={{ textAlign: 'center' }}>
+                              <p style={{ fontSize: '0.8rem', color: '#555', fontWeight: 'bold', margin: 0 }}>SPONSOR</p>
+                            </div>
+                          </div>
+
+                          {/* ESAF small finance bank */}
+                          <div className="partner-card-wide clickable" onClick={() => setShowESAFPopup(true)} style={{ padding: '1.5rem 1.5rem 1rem' }}>
+                            <span className="badge-main" style={{ position: 'absolute', top: '-15px', left: '50%', transform: 'translateX(-50%) rotate(-2deg)', zIndex: 2, background: 'var(--pink-primary)' }}>SPONSOR</span>
+                            <img src="collaborators/ESAF.png" alt="ESAF" loading="lazy" style={{ height: '90px', width: 'auto', maxWidth: '100%', objectFit: 'contain', marginTop: '1.5rem' }} />
                             <div style={{ textAlign: 'center' }}>
                               <p style={{ fontSize: '0.8rem', color: '#555', fontWeight: 'bold', margin: 0 }}>SPONSOR</p>
                             </div>
@@ -8682,6 +8699,56 @@ function App() {
 
                 <div className="modal-footer-brand" style={{ color: 'var(--pink-primary)', marginTop: '2rem' }}>
                   Outreach Partner
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showFrenchToastPopup && (
+        <div className="modal-overlay" onClick={() => setShowFrenchToastPopup(false)}>
+          <div className="modal-content about-modal" onClick={e => e.stopPropagation()}>
+            <button className="modal-close" onClick={() => setShowFrenchToastPopup(false)}>×</button>
+            <div className="modal-inner">
+              <div className="modal-visual" style={{ background: '#fff', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '2rem' }}>
+                <img src="collaborators/french toast.png" alt="French Toast" style={{ maxWidth: '80%', height: 'auto', objectFit: 'contain' }} />
+              </div>
+              <div className="modal-text" style={{ padding: '2.5rem 2rem' }}>
+                <h2 className="text-3d" style={{ marginBottom: '0.8rem', fontSize: '2.2rem' }}>French Toast</h2>
+                <p className="handwritten" style={{ fontSize: '1.2rem', color: 'var(--pink-primary)', marginTop: '-0.5rem', marginBottom: '1.2rem' }}>
+                  Sponsor
+                </p>
+                <p style={{ fontSize: '1rem', lineHeight: '1.6', marginBottom: '1.5rem', color: 'var(--text-navy)' }}>
+                  <strong>French Toast</strong> is a premier artisanal bakery and cafe chain. Famed for its exceptional pastries, sourdough breads, and gourmet menu, French Toast is fueling our developers, organizers, and mentors at Starlet 5.0.
+                </p>
+                <div className="modal-footer-brand" style={{ color: 'var(--pink-primary)', marginTop: '2rem' }}>
+                  Sponsor
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showESAFPopup && (
+        <div className="modal-overlay" onClick={() => setShowESAFPopup(false)}>
+          <div className="modal-content about-modal" onClick={e => e.stopPropagation()}>
+            <button className="modal-close" onClick={() => setShowESAFPopup(false)}>×</button>
+            <div className="modal-inner">
+              <div className="modal-visual" style={{ background: '#fff', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '2rem' }}>
+                <img src="collaborators/ESAF.png" alt="ESAF Finance Bank" style={{ maxWidth: '80%', height: 'auto', objectFit: 'contain' }} />
+              </div>
+              <div className="modal-text" style={{ padding: '2.5rem 2rem' }}>
+                <h2 className="text-3d" style={{ marginBottom: '0.8rem', fontSize: '2.2rem' }}>ESAF Bank</h2>
+                <p className="handwritten" style={{ fontSize: '1.2rem', color: 'var(--pink-primary)', marginTop: '-0.5rem', marginBottom: '1.2rem' }}>
+                  Sponsor
+                </p>
+                <p style={{ fontSize: '1rem', lineHeight: '1.6', marginBottom: '1.5rem', color: 'var(--text-navy)' }}>
+                  <strong>ESAF Bank</strong> is a leading banking institution dedicated to social impact and sustainable finance. ESAF is supporting Starlet 5.0 to promote financial inclusion, women empowerment, and innovative digital solutions.
+                </p>
+                <div className="modal-footer-brand" style={{ color: 'var(--pink-primary)', marginTop: '2rem' }}>
+                  Sponsor
                 </div>
               </div>
             </div>
