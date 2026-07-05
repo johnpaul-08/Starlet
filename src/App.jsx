@@ -222,6 +222,13 @@ const eventsData = [
     company: "Principal, Smrithi Special School",
     image: "events/Ms. Padmini.jpeg",
     objectPosition: "50% 40%"
+  },
+  {
+    id: 8,
+    name: "Legal Rights of Women",
+    person: "Rabia Rahim",
+    company: "Lawyer",
+    image: "events/Rabia Rahim.png"
   }
 ];
 
