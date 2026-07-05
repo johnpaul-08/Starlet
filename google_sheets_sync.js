@@ -1,4 +1,4 @@
-// Google Apps Script for Starlet 5.0 Google Sheets Synchronization
+// Google Apps Script for Starlet 5.0 Google Sheets Synchronization (Batch Writing Mode)
 // Google Sheet URL: https://docs.google.com/spreadsheets/d/1y9diyOSPAIgM6nAstAPS97nfUzduTCLgrJG12yw1dsA/edit
 // To install: Open your Google Sheet -> Click Extensions -> Apps Script -> Paste this code -> Click Save -> Click Run.
 
@@ -13,7 +13,7 @@ function onOpen() {
     .addToUi();
 }
 
-// Main synchronization function
+// Main synchronization function (High-Performance Batch Writes)
 function syncAllFromSupabase() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   
@@ -59,7 +59,7 @@ function syncAllFromSupabase() {
   });
   
   // ==========================================
-  // 1. SYNC SUBMISSIONS (Lists all teams & shows submission status)
+  // 1. SYNC SUBMISSIONS
   // ==========================================
   const subResponse = UrlFetchApp.fetch(SUPABASE_URL + "/rest/v1/project_submissions?select=*", options);
   if (subResponse.getResponseCode() === 200) {
@@ -73,9 +73,9 @@ function syncAllFromSupabase() {
       }
     });
     
-    // Clear and set headers
-    submissionsSheet.clear();
-    submissionsSheet.appendRow([
+    // Prepare 2D data array
+    const subRows = [];
+    subRows.push([
       "Team Name", 
       "Team Leader Name",
       "Project Name", 
@@ -94,7 +94,7 @@ function syncAllFromSupabase() {
       
       if (sub) {
         // Team has submitted
-        submissionsSheet.appendRow([
+        subRows.push([
           teamName,
           leaderName,
           sub.project_name || "—",
@@ -107,7 +107,7 @@ function syncAllFromSupabase() {
         ]);
       } else {
         // Team has NOT submitted yet
-        submissionsSheet.appendRow([
+        subRows.push([
           teamName,
           leaderName,
           "—",
@@ -121,15 +121,19 @@ function syncAllFromSupabase() {
       }
     });
     
+    // Clear and batch write to sheet
+    submissionsSheet.clear();
+    if (subRows.length > 0) {
+      submissionsSheet.getRange(1, 1, subRows.length, subRows[0].length).setValues(subRows);
+    }
     formatHeaderRow(submissionsSheet);
   }
   
   // ==========================================
   // 2. SYNC ATTENDANCE
   // ==========================================
-  // Clear and set headers
-  attendanceSheet.clear();
-  attendanceSheet.appendRow([
+  const attRows = [];
+  attRows.push([
     "Attendee Name", 
     "Email Address", 
     "College / Institution", 
@@ -142,24 +146,29 @@ function syncAllFromSupabase() {
     const isPresent = att.is_approved === true;
     if (isPresent) presentCount++;
     
-    attendanceSheet.appendRow([
+    attRows.push([
       att.full_name || "Anonymous",
-      att.email,
+      att.email || "—",
       att.college || "—",
       att.venue || "Unassigned",
       isPresent ? "PRESENT ✅" : "ABSENT ❌"
     ]);
   });
   
-  // Append summary stats
-  attendanceSheet.appendRow([""]);
-  attendanceSheet.appendRow(["Summary Stats:"]);
-  attendanceSheet.appendRow(["Total Approved Attendees Present", presentCount]);
-  attendanceSheet.appendRow(["Total Registered Attendees", attendees.length]);
+  // Append summary cards at the bottom
+  attRows.push(["", "", "", "", ""]);
+  attRows.push(["Summary Stats:", "", "", "", ""]);
+  attRows.push(["Total Approved Attendees Present", presentCount, "", "", ""]);
+  attRows.push(["Total Registered Attendees", attendees.length, "", "", ""]);
   
+  // Clear and batch write
+  attendanceSheet.clear();
+  if (attRows.length > 0) {
+    attendanceSheet.getRange(1, 1, attRows.length, attRows[0].length).setValues(attRows);
+  }
   formatHeaderRow(attendanceSheet);
   
-  // Bold summary metrics
+  // Bold summary metrics at bottom
   const lastRow = attendanceSheet.getLastRow();
   attendanceSheet.getRange(lastRow - 2, 1, 3, 2).setFontWeight("bold");
   
@@ -174,9 +183,8 @@ function syncAllFromSupabase() {
     teamGroups[tName].push(att);
   });
   
-  // Clear and set headers
-  teamsSheet.clear();
-  teamsSheet.appendRow([
+  const teamRows = [];
+  teamRows.push([
     "Team Name", 
     "Role / Position", 
     "Member Name", 
@@ -191,25 +199,30 @@ function syncAllFromSupabase() {
       if (m.is_team_leader) role = "Team Leader 👑";
       if (team === "Solo Pool (No Team)") role = "Solo Hacker";
       
-      teamsSheet.appendRow([
+      teamRows.push([
         team,
         role,
         m.full_name || "Anonymous",
-        m.email,
+        m.email || "—",
         m.selected_track || "—"
       ]);
     });
     // Add empty spacing row between teams
-    teamsSheet.appendRow([""]);
+    teamRows.push(["", "", "", "", ""]);
   });
   
+  // Clear and batch write
+  teamsSheet.clear();
+  if (teamRows.length > 0) {
+    teamsSheet.getRange(1, 1, teamRows.length, teamRows[0].length).setValues(teamRows);
+  }
   formatHeaderRow(teamsSheet);
 
   // ==========================================
   // 4. SYNC PARTICIPANTS (All Profiles of Attendees)
   // ==========================================
-  participantsSheet.clear();
-  participantsSheet.appendRow([
+  const partRows = [];
+  partRows.push([
     "Full Name", 
     "Email Address", 
     "Phone Number", 
@@ -245,7 +258,7 @@ function syncAllFromSupabase() {
       }
     }
 
-    participantsSheet.appendRow([
+    partRows.push([
       att.full_name || "Anonymous",
       att.email || "—",
       att.phone || "—",
@@ -261,6 +274,11 @@ function syncAllFromSupabase() {
     ]);
   });
 
+  // Clear and batch write
+  participantsSheet.clear();
+  if (partRows.length > 0) {
+    participantsSheet.getRange(1, 1, partRows.length, partRows[0].length).setValues(partRows);
+  }
   formatHeaderRow(participantsSheet);
   
   SpreadsheetApp.getUi().alert("✦ Starlet Sync Complete!\n\nAll spreadsheet pages have been updated with the latest live data from Supabase.");
