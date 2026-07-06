@@ -820,6 +820,9 @@ function App() {
   const [systemIssues, setSystemIssues] = useState([]);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [scanResult, setScanResult] = useState(null);
+  const [expandedProject, setExpandedProject] = useState(null);
+  const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
+  const [showroomSearchQuery, setShowroomSearchQuery] = useState('');
   const [settings, setSettings] = useState({
     registration_open: 'true',
     certificates_released: 'false',
@@ -976,6 +979,43 @@ function App() {
       console.log(`User response to install prompt: ${outcome}`);
       setInstallPrompt(null);
       setShowInstallBanner(false);
+    }
+  };
+
+  const getSubmissionTeamLeader = (teamName) => {
+    if (!teamName) return '';
+    const leader = allUsers.find(
+      u => u.team_name === teamName && u.is_team_leader
+    );
+    return leader ? leader.full_name : '';
+  };
+
+  const getEmbedLink = (url) => {
+    if (!url) return '';
+    try {
+      // OneDrive live link folder conversion
+      if (url.includes('onedrive.live.com') && url.includes('redir')) {
+        return url.replace('redir', 'embed');
+      }
+      // SharePoint shared folders conversion
+      if (url.includes('sharepoint.com') && url.includes(':f:')) {
+        return url.replace(':f:', ':w:') + '?web=1';
+      }
+      // Google Drive folders and files conversion
+      if (url.includes('drive.google.com')) {
+        if (url.includes('/file/d/')) {
+          return url.replace('/view', '/preview').replace('/edit', '/preview');
+        }
+        if (url.includes('/folderview') || url.includes('/folders/')) {
+          const match = url.match(/\/folders\/([a-zA-Z0-9-_]+)/);
+          if (match && match[1]) {
+            return `https://drive.google.com/embeddedfolderview?id=${match[1]}#grid`;
+          }
+        }
+      }
+      return url;
+    } catch (e) {
+      return url;
     }
   };
 
@@ -1400,7 +1440,7 @@ function App() {
     fetchSettings();
     fetchAllMentors();
     fetchBlogPosts();
-    if (isLoggedIn && user.role === 'admin') fetchSubmissions();
+    fetchSubmissions();
     if (isLoggedIn && user.role === 'attendee') fetchMySubmission();
 
     // 4. Realtime listener for venues, settings, and mentors
@@ -1419,7 +1459,7 @@ function App() {
     });
 
     venueChannel.on('postgres_changes', { event: '*', schema: 'public', table: 'project_submissions' }, () => {
-      if (isLoggedIn && user.role === 'admin') fetchSubmissions();
+      fetchSubmissions();
       if (isLoggedIn && user.role === 'attendee') fetchMySubmission();
     });
 
@@ -1777,6 +1817,11 @@ function App() {
     if (!isLoggedIn || !session?.user?.id) {
       playErrorSound();
       setUploadAlert({ type: 'error', message: 'Please log in to upload posts!' });
+      return;
+    }
+    if (user.role === 'attendee' && !user.isApproved) {
+      playErrorSound();
+      setUploadAlert({ type: 'error', message: 'Only attendees marked as "Present" can upload posts!' });
       return;
     }
     if (uploadFiles.length === 0 && !uploadCaption.trim()) {
@@ -2855,6 +2900,12 @@ function App() {
       return;
     }
 
+    // Presence Check (Attendees only)
+    if (user.role === 'attendee' && !user.isApproved) {
+      alert('Only attendees marked as "Present" by the registration desk can submit projects!');
+      return;
+    }
+
     const formData = new FormData(e.target);
 
     if (formData.get('description').toString().split(' ').length < 100) {
@@ -2876,6 +2927,7 @@ function App() {
     }
 
     const driveLink = formData.get('driveLink') || '';
+    const projectLink = formData.get('projectLink') || '';
     const techStack = formData.get('techStack') || '';
 
     const submissionData = {
@@ -2883,8 +2935,8 @@ function App() {
       project_name: formData.get('projectName'),
       description: formData.get('description'),
       github_url: formData.get('github'),
-      demo_url: driveLink,
-      ppt_link: driveLink,
+      demo_url: projectLink, // demo_url stores the deployed project link
+      ppt_link: driveLink,   // ppt_link stores the Google Drive folder link
       tech_stack: techStack,
       submitted_by: session.user.id,
       image_urls: []
@@ -2894,6 +2946,7 @@ function App() {
     if (error) alert(error.message);
     else {
       alert('Project submitted successfully! Good luck!');
+      setIsProjectModalOpen(false);
       fetchMySubmission();
     }
   };
@@ -3160,6 +3213,42 @@ function App() {
     const link = document.createElement('a');
     link.setAttribute('href', url);
     link.setAttribute('download', `starlet_users_${userRoleFilter}_export.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleDownloadSubmissionsCSV = () => {
+    if (projectSubmissions.length === 0) {
+      alert('No project submissions found to export.');
+      return;
+    }
+
+    const headers = ['Team/Group Name', 'Project Name', 'Description', 'Tech Stack', 'GitHub Repository', 'Google Drive Link', 'Project Deployed Link', 'Submitted By (User ID)', 'Submitted At'];
+
+    const rows = projectSubmissions.map(sub => [
+      sub.team_name || '',
+      sub.project_name || '',
+      sub.description || '',
+      sub.tech_stack || '',
+      sub.github_url || '',
+      sub.ppt_link || '', 
+      sub.demo_url || '', 
+      sub.submitted_by || '',
+      sub.submitted_at || sub.created_at || ''
+    ]);
+
+    const csvContent = [
+      headers.map(h => `"${h.replace(/"/g, '""')}"`).join(','),
+      ...rows.map(row => row.map(val => `"${String(val).replace(/"/g, '""')}"`).join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `starlet_project_submissions_export.csv`);
     link.style.visibility = 'hidden';
     document.body.appendChild(link);
     link.click();
@@ -4335,7 +4424,7 @@ function App() {
         <div className="sparkle s2">✧</div>
         <div className="sparkle s3">✦</div>
 
-        <header className={activeView !== 'landing' && activeView !== 'sponsors-overview' && activeView !== 'profile' && activeView !== 'audit-logs' && activeView !== 'blog' && activeView !== 'profile-view' && activeView !== 'venue' ? 'header-minimal' : ''}>
+        <header className={activeView !== 'landing' && activeView !== 'sponsors-overview' && activeView !== 'profile' && activeView !== 'audit-logs' && activeView !== 'blog' && activeView !== 'profile-view' && activeView !== 'venue' && activeView !== 'showroom' ? 'header-minimal' : ''}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
             <div className="logo-circle" onClick={navigateToLanding} style={{ cursor: 'pointer' }}>
               <img src="brand/Logo.png" alt="Starlet Logo" />
@@ -4345,11 +4434,10 @@ function App() {
             </span>
           </div>
 
-          {(activeView === 'landing' || activeView === 'blog' || activeView === 'profile-view' || activeView === 'venue') && (
+          {(activeView === 'landing' || activeView === 'blog' || activeView === 'profile-view' || activeView === 'venue' || activeView === 'showroom') && (
             <>
               <nav className={`nav-links ${isMenuOpen ? 'mobile-active' : ''}`}>
                 <>
-                  <a href="#mission" className="nav-link" onClick={(e) => handleHomeNavClick('mission', e)}>Mission</a>
                   <a href="#tracks" className="nav-link" onClick={(e) => handleHomeNavClick('tracks', e)}>Tracks</a>
                   <a href="#timeline" className="nav-link" onClick={(e) => handleHomeNavClick('timeline', e)}>Timeline</a>
                   <a href="#events" className="nav-link" onClick={(e) => handleHomeNavClick('events', e)}>Events</a>
@@ -4357,6 +4445,7 @@ function App() {
                   <a href="#sponsors" className="nav-link" onClick={(e) => handleHomeNavClick('sponsors', e)}>Sponsors</a>
                   <a href="#uic-overview" className="nav-link" onClick={(e) => { e.preventDefault(); setActiveView('sponsors-overview'); setIsMenuOpen(false); }}>UIC Overview</a>
                   <a href="#contact" className="nav-link" onClick={(e) => handleHomeNavClick('contact', e)}>Contact Us</a>
+                  <a href="#" className={`nav-link ${activeView === 'showroom' ? 'active' : ''}`} onClick={(e) => { e.preventDefault(); setActiveView('showroom'); setIsMenuOpen(false); }}>Showroom</a>
                   <a href="#" className={`nav-link ${activeView === 'blog' ? 'active' : ''}`} onClick={(e) => { e.preventDefault(); setActiveView('blog'); setIsMenuOpen(false); }}>Blog</a>
                 </>
 
@@ -5503,7 +5592,7 @@ function App() {
               </div>
 
               <div className="footer-links-mini">
-                <a href="#mission">Mission</a>
+                <a href="#" onClick={(e) => { e.preventDefault(); setActiveView('showroom'); }}>Showroom</a>
                 <a href="#tracks">Tracks</a>
                 <a href="#timeline">Timeline</a>
                 <a href="#faq">FAQ</a>
@@ -6992,6 +7081,14 @@ function App() {
                           PENDING
                         </button>
                       </div>
+                      <button className="directory-download-btn" onClick={handleDownloadSubmissionsCSV} style={{ margin: 0, padding: '0.6rem 1.2rem' }}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                          <polyline points="7 10 12 15 17 10"></polyline>
+                          <line x1="12" y1="15" x2="12" y2="3"></line>
+                        </svg>
+                        DOWNLOAD CSV
+                      </button>
                       <div className="admin-stats-strip" style={{ margin: 0, padding: '0.5rem 1rem', background: 'transparent' }}>
                         <div className="admin-stat-card" style={{ padding: '0.5rem 1rem', minWidth: 'auto' }}>
                           <strong>{projectSubmissions.length}</strong>
@@ -7064,8 +7161,11 @@ function App() {
                                     {sub ? (
                                       <div style={{ display: 'flex', gap: '0.5rem' }}>
                                         <a href={sub.github_url} target="_blank" rel="noreferrer" className="btn-small accept" onClick={(e) => e.stopPropagation()}>CODE</a>
+                                        {sub.ppt_link && (
+                                          <a href={sub.ppt_link} target="_blank" rel="noreferrer" className="btn-small accept" onClick={(e) => e.stopPropagation()}>DRIVE FOLDER</a>
+                                        )}
                                         {sub.demo_url && (
-                                          <a href={sub.demo_url} target="_blank" rel="noreferrer" className="btn-small accept" onClick={(e) => e.stopPropagation()}>DRIVE FOLDER</a>
+                                          <a href={sub.demo_url} target="_blank" rel="noreferrer" className="btn-small accept" style={{ background: 'var(--yellow-star)' }} onClick={(e) => e.stopPropagation()}>LIVE DEMO</a>
                                         )}
                                       </div>
                                     ) : '-'}
@@ -7108,8 +7208,11 @@ function App() {
                                           </p>
                                           <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem' }}>
                                             <a href={sub.github_url} target="_blank" rel="noreferrer" className="btn-small accept" style={{ padding: '0.4rem 0.8rem' }}>GitHub Code</a>
+                                            {sub.ppt_link && (
+                                              <a href={sub.ppt_link} target="_blank" rel="noreferrer" className="btn-small accept" style={{ padding: '0.4rem 0.8rem' }}>Google Drive Folder</a>
+                                            )}
                                             {sub.demo_url && (
-                                              <a href={sub.demo_url} target="_blank" rel="noreferrer" className="btn-small accept" style={{ padding: '0.4rem 0.8rem' }}>Google Drive Folder</a>
+                                              <a href={sub.demo_url} target="_blank" rel="noreferrer" className="btn-small accept" style={{ padding: '0.4rem 0.8rem', background: 'var(--yellow-star)' }}>Live Project Website</a>
                                             )}
                                           </div>
 
@@ -7826,35 +7929,7 @@ function App() {
                     </span>
                   </div>
                 </div>
-                {settings.google_drive_link && (
-                  <div className="profile-field">
-                    <label>Submission Drive Link</label>
-                    <div className="field-value" style={{ width: '100%', marginTop: '0.4rem' }}>
-                      <a
-                        href={settings.google_drive_link}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="btn-small accept"
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '0.5rem',
-                          background: 'var(--yellow-star)',
-                          color: 'var(--text-navy)',
-                          border: '2px solid var(--text-navy)',
-                          textDecoration: 'none',
-                          fontWeight: 'bold',
-                          boxShadow: '3px 3px 0px var(--text-navy)',
-                          padding: '0.5rem 1rem',
-                          borderRadius: '10px',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        <img src="svg/emoji/folder.svg" className="emoji-icon" alt="Folder" /> Open Shared Google Drive Folder
-                      </a>
-                    </div>
-                  </div>
-                )}
+
                 <div className="profile-field">
                   <label>Team Status</label>
                   <div className="field-value" style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem', alignItems: 'flex-start' }}>
@@ -8101,93 +8176,33 @@ function App() {
                 </div>
 
                 {/* PROJECT SUBMISSION SECTION */}
-                <div className="profile-card" style={{ marginTop: '2rem', padding: '2rem', background: 'rgba(255,255,255,0.05)', borderRadius: '20px' }}>
-                  <h3 className="text-3d" style={{ fontSize: '1.5rem', marginBottom: '1.5rem' }}>Project Submission</h3>
-                  {mySubmission ? (
-                    <div className="submission-success" style={{ textAlign: 'center' }}>
-                      <div style={{ marginBottom: '1rem' }}><img src="svg/emoji/rocket.svg" style={{ width: '48px', height: '48px' }} alt="Submitted" /></div>
-                      <h3>Project Submitted!</h3>
-                      <p>Your team's project <strong>"{mySubmission.project_name}"</strong> has been received.</p>
-                      {submitterName && (
-                        <p style={{ fontSize: '0.9rem', color: '#001f3f', fontWeight: 'bold', marginTop: '0.5rem' }}>
-                          Submitted by teammate: <span style={{ color: 'var(--pink-primary)' }}>{submitterName}</span>
-                        </p>
-                      )}
-                      <div className="submission-links-row" style={{ marginTop: '1.5rem', display: 'flex', justifyContent: 'center', gap: '1rem' }}>
-                        <a href={mySubmission.github_url} target="_blank" rel="noreferrer" className="btn-small accept">VIEW CODE</a>
-                        {mySubmission.demo_url && (
-                          <a href={mySubmission.demo_url} target="_blank" rel="noreferrer" className="btn-small accept">VIEW DRIVE FOLDER</a>
-                        )}
-                      </div>
-                    </div>
-                  ) : (
-                    <form className="auth-form" onSubmit={handleProjectSubmit} style={{ marginTop: '1rem' }}>
-                      <div className="submission-instructions-box" style={{ background: 'rgba(255, 255, 255, 0.05)', border: '1px dashed var(--blue-shadow)', borderRadius: '12px', padding: '1.2rem', marginBottom: '1.5rem' }}>
-                        <h4 style={{ color: '#000', fontFamily: "'Fredoka One', cursive", marginBottom: '0.5rem' }}>Submission Guidelines</h4>
-                        <p style={{ fontSize: '0.9rem', color: '#000', marginBottom: '0.8rem', lineHeight: '1.4' }}>
-                          Please follow the steps below to submit your project:
-                        </p>
-                        <ol style={{ fontSize: '0.85rem', color: '#000', paddingLeft: '1.2rem', lineHeight: '1.6' }}>
-                          <li>Open the event's shared <a href={settings.google_drive_link || "https://drive.google.com"} target="_blank" rel="noreferrer" style={{ color: 'var(--yellow-star)', textDecoration: 'underline', fontWeight: 'bold' }}>Google Drive Folder</a>.</li>
-                          <li>Create a new folder inside, named exactly after your group/team name (<strong>{user.teamName || "Your Team Name"}</strong>).</li>
-                          <li>Upload your <strong>demo video</strong> and <strong>presentation slide deck (PPTX/PDF)</strong> into that team folder.</li>
-                          <li>Submit your GitHub repo link and your team folder's Google Drive link in the form below.</li>
-                        </ol>
-                      </div>
-
-                      <div className="admin-two-col-grid" style={{ gap: '1rem' }}>
-                        <div className="input-group">
-                          <label style={{ color: 'var(--text-navy)', fontWeight: 'bold' }}>Project Name</label>
-                          <input name="projectName" type="text" placeholder="My Awesome Hack" required style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: '1px solid #ddd' }} />
-                        </div>
-                        <div className="input-group">
-                          <label style={{ color: 'var(--text-navy)', fontWeight: 'bold' }}>GitHub Repository</label>
-                          <input name="github" type="url" placeholder="https://github.com/..." required style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: '1px solid #ddd' }} />
-                        </div>
-                      </div>
-                      <div className="admin-two-col-grid" style={{ gap: '1rem', marginTop: '1rem' }}>
-                        <div className="input-group">
-                          <label style={{ color: 'var(--text-navy)', fontWeight: 'bold' }}>Google Drive Folder Link</label>
-                          <input name="driveLink" type="url" placeholder="https://drive.google.com/drive/folders/..." required style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: '1px solid #ddd' }} />
-                        </div>
-                        <div className="input-group">
-                          <label style={{ color: 'var(--text-navy)', fontWeight: 'bold' }}>Tech Stack Used</label>
-                          <input name="techStack" type="text" placeholder="React, Node, Supabase, Python" required style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: '1px solid #ddd' }} />
-                        </div>
-                      </div>
-                      <div className="input-group" style={{ marginTop: '1rem' }}>
-                        <label style={{ color: 'var(--text-navy)', fontWeight: 'bold' }}>Brief Description (min 100 words)</label>
-                        <textarea name="description" placeholder="Tell us what you built and how it helps..." required style={{ width: '100%', minHeight: '100px', padding: '0.8rem', borderRadius: '8px', border: '1px solid #ddd' }}></textarea>
-                      </div>
-                      {settings.project_submission_open === 'true' ? (
-                        <button
-                          type="submit"
-                          className="join-btn"
-                          style={{
-                            width: '100%',
-                            marginTop: '1.5rem',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          SUBMIT FINAL PROJECT
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          className="join-btn disabled"
-                          style={{
-                            width: '100%',
-                            marginTop: '1.5rem',
-                            cursor: 'not-allowed',
-                            opacity: 0.6
-                          }}
-                          disabled
-                        >
-                          SUBMISSION CLOSED
-                        </button>
-                      )}
-                    </form>
-                  )}
+                <div className="profile-card" style={{ marginTop: '2rem', padding: '2rem', background: 'rgba(255,255,255,0.05)', borderRadius: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', textAlign: 'center' }}>
+                  <h3 className="text-3d" style={{ fontSize: '1.5rem', margin: 0 }}>Project Submission</h3>
+                  <p style={{ margin: 0, opacity: 0.8, fontSize: '0.95rem', color: '#fff' }}>
+                    {mySubmission 
+                      ? `Your project "${mySubmission.project_name}" is successfully submitted!`
+                      : "Submit your final hackathon project files, presentation slides, and source code link."}
+                  </p>
+                  <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', width: '100%', marginTop: '0.5rem', flexWrap: 'wrap' }}>
+                    {!mySubmission && (
+                      <a 
+                        href={settings.google_drive_link || "https://drive.google.com"} 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        className="btn-small accept"
+                        style={{ padding: '0.8rem 1.5rem', borderRadius: '12px', textDecoration: 'none', fontFamily: 'Fredoka One', minWidth: '200px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', height: '48px', boxSizing: 'border-box' }}
+                      >
+                        📂 UPLOAD TO DRIVE
+                      </a>
+                    )}
+                    <button 
+                      onClick={() => setIsProjectModalOpen(true)}
+                      className="join-btn"
+                      style={{ minWidth: '200px', cursor: 'pointer', height: '48px', boxSizing: 'border-box', margin: 0 }}
+                    >
+                      {mySubmission ? "VIEW SUBMISSION DETAILS" : "SUBMIT PROJECT"}
+                    </button>
+                  </div>
                 </div>
                 {/* MY VLOGS / POSTS / SAVED GRID */}
                 <div className="profile-card" style={{ marginTop: '2rem', padding: '2rem', background: 'rgba(255,255,255,0.05)', borderRadius: '20px' }}>
@@ -9133,7 +9148,231 @@ function App() {
             </div>
           </div>
         </div>
-      ) : null}
+      ) : activeView === 'showroom' ? (
+        <div className="showroom-container" style={{ paddingTop: '120px', paddingLeft: '2rem', paddingRight: '2rem', minHeight: '80vh', maxWidth: '1400px', margin: '0 auto' }}>
+          <div className="section-header" style={{ marginBottom: '3rem', textAlign: 'center' }}>
+            <h1 className="text-3d" style={{ fontSize: '3rem', marginBottom: '1rem' }}>Project Showroom</h1>
+            <p className="subtitle-large" style={{ color: 'var(--text-muted)', marginBottom: '2rem' }}>
+              Explore the amazing innovations created by all teams at Starlet 5.0!
+            </p>
+            
+            {/* Showroom Search Bar */}
+            <div style={{ maxWidth: '600px', margin: '0 auto', position: 'relative' }}>
+              <input
+                type="text"
+                placeholder="🔍 Search by Team Name or Team Leader Name..."
+                value={showroomSearchQuery}
+                onChange={(e) => setShowroomSearchQuery(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '1rem 1.5rem',
+                  fontSize: '1.05rem',
+                  fontFamily: 'Outfit',
+                  borderRadius: '16px',
+                  border: '3px solid var(--text-navy)',
+                  background: 'var(--bg-cream)',
+                  boxShadow: '4px 4px 0px var(--text-navy)',
+                  color: 'var(--text-navy)',
+                  outline: 'none',
+                  transition: 'transform 0.1s, box-shadow 0.1s'
+                }}
+                onFocus={(e) => {
+                  e.target.style.transform = 'translate(-2px, -2px)';
+                  e.target.style.boxShadow = '6px 6px 0px var(--text-navy)';
+                }}
+                onBlur={(e) => {
+                  e.target.style.transform = 'none';
+                  e.target.style.boxShadow = '4px 4px 0px var(--text-navy)';
+                }}
+              />
+              {showroomSearchQuery && (
+                <button
+                  onClick={() => setShowroomSearchQuery('')}
+                  style={{
+                    position: 'absolute',
+                    right: '1.2rem',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--text-navy)',
+                    fontSize: '1.4rem',
+                    cursor: 'pointer',
+                    fontWeight: 'bold',
+                    padding: 0
+                  }}
+                >
+                  ×
+                </button>
+              )}
+            </div>
+          </div>
+
+          {(() => {
+            const filteredSubmissions = projectSubmissions.filter(sub => {
+              if (!showroomSearchQuery.trim()) return true;
+              const query = showroomSearchQuery.toLowerCase().trim();
+              const teamName = (sub.team_name || '').toLowerCase();
+              const leaderName = getSubmissionTeamLeader(sub.team_name).toLowerCase();
+              const projectName = (sub.project_name || '').toLowerCase();
+              return teamName.includes(query) || leaderName.includes(query) || projectName.includes(query);
+            });
+
+            if (projectSubmissions.length === 0) {
+              return (
+                <div style={{ textAlign: 'center', padding: '4rem', background: 'var(--bg-cream)', border: '4px solid var(--text-navy)', borderRadius: '24px', boxShadow: '8px 8px 0px var(--text-navy)' }}>
+                  <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>🚀</div>
+                  <h3 style={{ fontFamily: 'Fredoka One', color: 'var(--text-navy)', fontSize: '1.5rem', marginBottom: '0.5rem' }}>No Submissions Yet</h3>
+                  <p style={{ fontFamily: 'Outfit', color: 'var(--text-muted)' }}>Check back once hacking finishes and teams submit their projects!</p>
+                </div>
+              );
+            }
+
+            if (filteredSubmissions.length === 0) {
+              return (
+                <div style={{ textAlign: 'center', padding: '4rem', background: 'var(--bg-cream)', border: '4px solid var(--text-navy)', borderRadius: '24px', boxShadow: '8px 8px 0px var(--text-navy)' }}>
+                  <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>🔍</div>
+                  <h3 style={{ fontFamily: 'Fredoka One', color: 'var(--text-navy)', fontSize: '1.5rem', marginBottom: '0.5rem' }}>No Matching Projects Found</h3>
+                  <p style={{ fontFamily: 'Outfit', color: 'var(--text-muted)' }}>Try refining your search query or check spelling.</p>
+                </div>
+              );
+            }
+
+            return (
+              <div className="submissions-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '2.5rem', paddingBottom: '4rem' }}>
+                {filteredSubmissions.map((submission) => {
+                  const formattedTime = submission.created_at 
+                    ? new Date(submission.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }) + ' ' + new Date(submission.created_at).toLocaleDateString([], { month: 'short', day: 'numeric' })
+                    : 'N/A';
+                  const leaderName = getSubmissionTeamLeader(submission.team_name);
+
+                  return (
+                    <div key={submission.id} className="arcade-char-card" style={{ padding: '2rem', border: '4px solid var(--text-navy)', background: 'var(--bg-cream)', boxShadow: '8px 8px 0px var(--text-navy)', borderRadius: '24px', display: 'flex', flexDirection: 'column', height: '100%', gap: '1rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span className="sidebar-tag" style={{ background: 'var(--pink-primary)', color: '#fff', border: 'none', fontWeight: 'bold' }}>
+                          {submission.team_name}
+                        </span>
+                        <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 'bold' }}>
+                          🕒 {formattedTime}
+                        </span>
+                      </div>
+
+                      <h3 style={{ fontFamily: 'Fredoka One', color: 'var(--text-navy)', fontSize: '1.4rem', margin: '0.5rem 0 0.2rem 0' }}>
+                        {submission.project_name}
+                      </h3>
+
+                      {leaderName && (
+                        <p style={{ fontFamily: 'Outfit', color: 'var(--text-navy)', fontSize: '0.88rem', margin: '0 0 0.2rem 0', textAlign: 'left' }}>
+                          <strong>👑 Leader:</strong> {leaderName}
+                        </p>
+                      )}
+
+                      {submission.tech_stack && (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+                          {submission.tech_stack.split(',').map((tech, i) => (
+                            <span key={i} className="sidebar-tag" style={{ fontSize: '0.75rem', background: '#fff', border: '1.5px solid var(--text-navy)' }}>
+                              {tech.trim()}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+
+                      <p style={{ fontFamily: 'Outfit', color: 'var(--text-navy)', fontSize: '0.92rem', lineHeight: '1.5', flexGrow: 1, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebKitLineClamp: 4, WebKitBoxOrient: 'vertical', textAlign: 'left', margin: '0.5rem 0' }}>
+                        {submission.description}
+                      </p>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem', marginTop: 'auto', paddingTop: '1rem', borderTop: '2px dashed rgba(0, 31, 63, 0.15)' }}>
+                      {submission.github_url && (
+                        <a 
+                          href={submission.github_url.startsWith('http') ? submission.github_url : `https://${submission.github_url}`} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          className="social-connect-item-view"
+                          style={{ margin: 0, textDecoration: 'none', background: '#fff', border: '2px solid var(--text-navy)', padding: '0.7rem 1rem', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '0.5rem', transition: 'transform 0.1s' }}
+                        >
+                          <img src="icons/github.svg" alt="GitHub" style={{ width: '20px', height: '20px' }} />
+                          <span style={{ fontFamily: 'Fredoka One', color: 'var(--text-navy)', fontSize: '0.9rem' }}>Github Repository</span>
+                        </a>
+                      )}
+
+                      {submission.demo_url && (
+                        <a 
+                          href={submission.demo_url.startsWith('http') ? submission.demo_url : `https://${submission.demo_url}`} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          className="social-connect-item-view"
+                          style={{ margin: 0, textDecoration: 'none', background: 'var(--pink-primary)', color: '#fff', border: '2px solid var(--text-navy)', padding: '0.7rem 1rem', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '0.5rem', transition: 'transform 0.1s', boxShadow: '3px 3px 0px var(--text-navy)' }}
+                        >
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h6" />
+                            <polyline points="15 3 21 3 21 9" />
+                            <line x1="10" y1="14" x2="21" y2="3" />
+                          </svg>
+                          <span style={{ fontFamily: 'Fredoka One', fontSize: '0.9rem' }}>Live Project Website</span>
+                        </a>
+                      )}
+
+                      {submission.ppt_link && (
+                        <>
+                          <a 
+                            href={submission.ppt_link.startsWith('http') ? submission.ppt_link : `https://${submission.ppt_link}`} 
+                            target="_blank" 
+                            rel="noopener noreferrer" 
+                            className="social-connect-item-view"
+                            style={{ margin: 0, textDecoration: 'none', background: '#fff', border: '2px solid var(--text-navy)', padding: '0.7rem 1rem', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '0.5rem', transition: 'transform 0.1s' }}
+                          >
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--text-navy)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                              <polyline points="7 10 12 15 17 10" />
+                              <line x1="12" y1="15" x2="12" y2="3" />
+                            </svg>
+                            <span style={{ fontFamily: 'Fredoka One', color: 'var(--text-navy)', fontSize: '0.9rem' }}>Open OneDrive Folder</span>
+                          </a>
+
+                          <button
+                            onClick={() => setExpandedProject(expandedProject === submission.id ? null : submission.id)}
+                            className="social-connect-item-view"
+                            style={{ margin: 0, border: '2px solid var(--text-navy)', padding: '0.7rem 1rem', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', background: expandedProject === submission.id ? 'var(--pink-primary)' : 'var(--yellow-star)', color: expandedProject === submission.id ? '#fff' : 'var(--text-navy)', boxShadow: '3px 3px 0px var(--text-navy)', transition: 'all 0.1s' }}
+                          >
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                              {expandedProject === submission.id ? (
+                                <>
+                                  <line x1="18" y1="6" x2="6" y2="18" />
+                                  <line x1="6" y1="6" x2="18" y2="18" />
+                                </>
+                              ) : (
+                                <>
+                                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                                  <circle cx="12" cy="12" r="3" />
+                                </>
+                              )}
+                            </svg>
+                            <span style={{ fontFamily: 'Fredoka One', fontSize: '0.9rem' }}>
+                              {expandedProject === submission.id ? 'Hide Live Folder' : 'Live Folder Preview'}
+                            </span>
+                          </button>
+                        </>
+                      )}
+                    </div>
+
+                    {expandedProject === submission.id && submission.ppt_link && (
+                      <div style={{ marginTop: '1.2rem', width: '100%', height: '420px', border: '3.5px solid var(--text-navy)', borderRadius: '18px', overflow: 'hidden', background: '#fff', position: 'relative', boxShadow: 'inset 0 4px 10px rgba(0,0,0,0.06)' }}>
+                        <iframe 
+                          src={getEmbedLink(submission.ppt_link)} 
+                          style={{ width: '100%', height: '100%', border: 'none' }}
+                          title={`Project Preview - ${submission.project_name}`}
+                          allow="autoplay; encrypted-media"
+                        ></iframe>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })()}
+      </div>
+    ) : null}
 
       <div className={`scroll-top-btn ${showScrollTop && activeView !== 'blog' ? 'visible' : ''}`} onClick={scrollToTop}>
         <img src="icons/rocket.svg" alt="top" />
@@ -9478,6 +9717,161 @@ function App() {
               <div className="modal-footer-brand">
                 Starlet 5.0 Innovation Track
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isProjectModalOpen && (
+        <div className="modal-overlay" onClick={() => setIsProjectModalOpen(false)}>
+          <div className="modal-content about-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '750px', background: 'var(--bg-cream)', border: '4px solid var(--text-navy)', padding: '2.5rem', borderRadius: '24px', boxShadow: '10px 10px 0px var(--text-navy)', overflowY: 'auto', maxHeight: '90vh', position: 'relative' }}>
+            <button className="modal-close" onClick={() => setIsProjectModalOpen(false)} style={{ color: 'var(--text-navy)', fontSize: '2rem', right: '1.5rem', top: '1rem', background: 'none', border: 'none', cursor: 'pointer' }}>×</button>
+            
+            <div style={{ width: '100%' }}>
+              <h2 className="text-3d" style={{ fontSize: '2.2rem', marginBottom: '1.5rem', textAlign: 'center' }}>Project Submission</h2>
+              
+              {mySubmission ? (
+                <div className="submission-success" style={{ textAlign: 'center' }}>
+                  <div style={{ marginBottom: '1rem', fontSize: '3rem' }}>🚀</div>
+                  <h3 style={{ fontFamily: 'Fredoka One', color: 'var(--text-navy)', fontSize: '1.6rem', marginBottom: '0.5rem' }}>Project Submitted!</h3>
+                  <p style={{ fontFamily: 'Outfit', color: 'var(--text-navy)', fontSize: '1.05rem', margin: '0.5rem 0' }}>Your team's project <strong>"{mySubmission.project_name}"</strong> has been received.</p>
+                  
+                  {submitterName && (
+                    <p style={{ fontSize: '0.95rem', color: 'var(--text-navy)', fontWeight: 'bold', marginTop: '0.5rem' }}>
+                      Submitted by teammate: <span style={{ color: 'var(--pink-primary)' }}>{submitterName}</span>
+                    </p>
+                  )}
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1rem', marginTop: '2rem', textAlign: 'left' }}>
+                    <div className="input-group">
+                      <label style={{ color: 'var(--text-navy)', fontWeight: 'bold', fontSize: '0.9rem', marginBottom: '0.3rem', display: 'block' }}>Team Name</label>
+                      <input type="text" value={mySubmission.team_name} disabled style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: '2px solid var(--text-navy)', background: '#e2e8f0', color: '#4a5568', fontWeight: 'bold' }} />
+                    </div>
+                    <div className="input-group">
+                      <label style={{ color: 'var(--text-navy)', fontWeight: 'bold', fontSize: '0.9rem', marginBottom: '0.3rem', display: 'block' }}>Project Name</label>
+                      <input type="text" value={mySubmission.project_name} disabled style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: '2px solid var(--text-navy)', background: '#e2e8f0', color: '#4a5568', fontWeight: 'bold' }} />
+                    </div>
+                    <div className="admin-two-col-grid" style={{ gap: '1rem', display: 'grid', gridTemplateColumns: '1fr 1fr' }}>
+                      <div className="input-group">
+                        <label style={{ color: 'var(--text-navy)', fontWeight: 'bold', fontSize: '0.9rem', marginBottom: '0.3rem', display: 'block' }}>GitHub Repository</label>
+                        <input type="text" value={mySubmission.github_url} disabled style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: '2px solid var(--text-navy)', background: '#e2e8f0', color: '#4a5568' }} />
+                      </div>
+                      <div className="input-group">
+                        <label style={{ color: 'var(--text-navy)', fontWeight: 'bold', fontSize: '0.9rem', marginBottom: '0.3rem', display: 'block' }}>Google Drive Folder</label>
+                        <input type="text" value={mySubmission.ppt_link || ''} disabled style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: '2px solid var(--text-navy)', background: '#e2e8f0', color: '#4a5568' }} />
+                      </div>
+                    </div>
+                    <div className="admin-two-col-grid" style={{ gap: '1rem', display: 'grid', gridTemplateColumns: '1fr 1fr' }}>
+                      <div className="input-group">
+                        <label style={{ color: 'var(--text-navy)', fontWeight: 'bold', fontSize: '0.9rem', marginBottom: '0.3rem', display: 'block' }}>Tech Stack</label>
+                        <input type="text" value={mySubmission.tech_stack} disabled style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: '2px solid var(--text-navy)', background: '#e2e8f0', color: '#4a5568' }} />
+                      </div>
+                      <div className="input-group">
+                        <label style={{ color: 'var(--text-navy)', fontWeight: 'bold', fontSize: '0.9rem', marginBottom: '0.3rem', display: 'block' }}>Project Live Link (Optional)</label>
+                        <input type="text" value={mySubmission.demo_url || 'N/A'} disabled style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: '2px solid var(--text-navy)', background: '#e2e8f0', color: '#4a5568' }} />
+                      </div>
+                    </div>
+                    <div className="input-group">
+                      <label style={{ color: 'var(--text-navy)', fontWeight: 'bold', fontSize: '0.9rem', marginBottom: '0.3rem', display: 'block' }}>Brief Description</label>
+                      <textarea value={mySubmission.description} disabled style={{ width: '100%', minHeight: '100px', padding: '0.8rem', borderRadius: '8px', border: '2px solid var(--text-navy)', background: '#e2e8f0', color: '#4a5568', resize: 'vertical' }}></textarea>
+                    </div>
+                  </div>
+
+                  <div className="submission-links-row" style={{ marginTop: '2rem', display: 'flex', justifyContent: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+                    <a href={mySubmission.github_url} target="_blank" rel="noreferrer" className="btn-small accept" style={{ padding: '0.7rem 1.5rem', borderRadius: '12px', textDecoration: 'none', fontFamily: 'Fredoka One' }}>VIEW CODE</a>
+                    {mySubmission.ppt_link && (
+                      <a href={mySubmission.ppt_link} target="_blank" rel="noreferrer" className="btn-small accept" style={{ padding: '0.7rem 1.5rem', borderRadius: '12px', textDecoration: 'none', fontFamily: 'Fredoka One' }}>VIEW DRIVE FOLDER</a>
+                    )}
+                    {mySubmission.demo_url && (
+                      <a href={mySubmission.demo_url} target="_blank" rel="noreferrer" className="btn-small accept" style={{ padding: '0.7rem 1.5rem', borderRadius: '12px', textDecoration: 'none', background: 'var(--yellow-star)', color: 'var(--text-navy)', border: '2px solid var(--text-navy)', fontFamily: 'Fredoka One' }}>LIVE WEBSITE</a>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <form className="auth-form" onSubmit={handleProjectSubmit} style={{ marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
+                  <div className="submission-instructions-box" style={{ background: 'rgba(0, 31, 63, 0.03)', border: '2px dashed var(--text-navy)', borderRadius: '14px', padding: '1.2rem' }}>
+                    <h4 style={{ color: 'var(--text-navy)', fontFamily: "'Fredoka One', cursive", margin: '0 0 0.5rem 0' }}>Submission Guidelines</h4>
+                    <p style={{ fontSize: '0.88rem', color: 'var(--text-navy)', margin: '0 0 0.8rem 0', lineHeight: '1.4' }}>
+                      Please follow the steps below to submit your project:
+                    </p>
+                    <ol style={{ fontSize: '0.85rem', color: 'var(--text-navy)', paddingLeft: '1.2rem', margin: 0, lineHeight: '1.6' }}>
+                      <li>Open the event's shared <a href={settings.google_drive_link || "https://drive.google.com"} target="_blank" rel="noreferrer" style={{ color: 'var(--pink-primary)', textDecoration: 'underline', fontWeight: 'bold' }}>Google Drive Folder</a>.</li>
+                      <li>Create a new folder inside, named exactly after your team name (<strong>{user.teamName || "Your Team Name"}</strong>).</li>
+                      <li>Upload your <strong>demo video</strong> and <strong>presentation slide deck (PPTX/PDF)</strong> into that team folder.</li>
+                      <li>Submit your GitHub repo link and your team folder's Google Drive link in the form below.</li>
+                    </ol>
+                  </div>
+
+                  <div className="input-group">
+                    <label style={{ color: 'var(--text-navy)', fontWeight: 'bold', fontSize: '0.9rem', marginBottom: '0.3rem', display: 'block' }}>Team/Group Name</label>
+                    <input name="teamName" type="text" value={user.teamName || `Individual-${session?.user?.id}`} disabled style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: '2px solid var(--text-navy)', background: '#e2e8f0', color: '#4a5568', fontWeight: 'bold' }} />
+                  </div>
+
+                  <div className="admin-two-col-grid" style={{ gap: '1.2rem', display: 'grid', gridTemplateColumns: '1fr 1fr' }}>
+                    <div className="input-group">
+                      <label style={{ color: 'var(--text-navy)', fontWeight: 'bold', fontSize: '0.9rem', marginBottom: '0.3rem', display: 'block' }}>Project Name</label>
+                      <input name="projectName" type="text" placeholder="My Awesome Hack" required style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: '2px solid var(--text-navy)' }} />
+                    </div>
+                    <div className="input-group">
+                      <label style={{ color: 'var(--text-navy)', fontWeight: 'bold', fontSize: '0.9rem', marginBottom: '0.3rem', display: 'block' }}>GitHub Repository</label>
+                      <input name="github" type="url" placeholder="https://github.com/..." required style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: '2px solid var(--text-navy)' }} />
+                    </div>
+                  </div>
+
+                  <div className="admin-two-col-grid" style={{ gap: '1.2rem', display: 'grid', gridTemplateColumns: '1fr 1fr' }}>
+                    <div className="input-group">
+                      <label style={{ color: 'var(--text-navy)', fontWeight: 'bold', fontSize: '0.9rem', marginBottom: '0.3rem', display: 'block' }}>Google Drive Folder Link</label>
+                      <input name="driveLink" type="url" placeholder="https://drive.google.com/drive/folders/..." required style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: '2px solid var(--text-navy)' }} />
+                    </div>
+                    <div className="input-group">
+                      <label style={{ color: 'var(--text-navy)', fontWeight: 'bold', fontSize: '0.9rem', marginBottom: '0.3rem', display: 'block' }}>Tech Stack Used</label>
+                      <input name="techStack" type="text" placeholder="React, Node, Supabase, Python" required style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: '2px solid var(--text-navy)' }} />
+                    </div>
+                  </div>
+
+                  <div className="admin-two-col-grid" style={{ gap: '1.2rem', display: 'grid', gridTemplateColumns: '1fr 1fr' }}>
+                    <div className="input-group">
+                      <label style={{ color: 'var(--text-navy)', fontWeight: 'bold', fontSize: '0.9rem', marginBottom: '0.3rem', display: 'block' }}>Project Deployed Link (Optional)</label>
+                      <input name="projectLink" type="url" placeholder="https://my-app.vercel.app" style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: '2px solid var(--text-navy)' }} />
+                    </div>
+                  </div>
+
+                  <div className="input-group">
+                    <label style={{ color: 'var(--text-navy)', fontWeight: 'bold', fontSize: '0.9rem', marginBottom: '0.3rem', display: 'block' }}>Brief Description (min 100 words)</label>
+                    <textarea name="description" placeholder="Tell us what you built and how it helps..." required style={{ width: '100%', minHeight: '100px', padding: '0.8rem', borderRadius: '8px', border: '2px solid var(--text-navy)', resize: 'vertical' }}></textarea>
+                  </div>
+
+                  {settings.project_submission_open === 'true' ? (
+                    <button
+                      type="submit"
+                      className="join-btn"
+                      style={{
+                        width: '100%',
+                        marginTop: '1rem',
+                        cursor: 'pointer',
+                        padding: '1rem'
+                      }}
+                    >
+                      SUBMIT FINAL PROJECT
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      className="join-btn disabled"
+                      style={{
+                        width: '100%',
+                        marginTop: '1rem',
+                        cursor: 'not-allowed',
+                        opacity: 0.6,
+                        padding: '1rem'
+                      }}
+                      disabled
+                    >
+                      SUBMISSION CLOSED
+                    </button>
+                  )}
+                </form>
+              )}
             </div>
           </div>
         </div>
