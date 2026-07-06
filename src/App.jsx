@@ -186,8 +186,10 @@ const eventsData = [
     name: "Kaleripayettu",
     person: "Gurukkal Rajeev Chaithanya",
     company: "Bodhi Sutra",
-    image: "events/Gurukkal Rajeev Chaithanya Kaleripayuttu.jpeg",
-    objectPosition: "top"
+    image: "events/Gurukkal Rajeev Chaithanya Kaleripayuttu.png",
+    objectPosition: "center",
+    cardWidth: "320px",
+    cardHeight: "180px"
   },
   {
     id: 4,
@@ -5401,7 +5403,7 @@ function App() {
                               flexDirection: 'column',
                               boxShadow: '8px 8px 0px var(--text-navy)',
                               transition: 'transform 0.2s',
-                              flex: ev.isBand ? '0 0 840px' : '0 0 280px',
+                              flex: ev.isBand ? '0 0 840px' : (ev.cardWidth ? `0 0 ${parseInt(ev.cardWidth) + 40}px` : '0 0 280px'),
                               scrollSnapAlign: 'start',
                               position: 'relative'
                             }}
@@ -5484,7 +5486,7 @@ function App() {
                               </>
                             ) : (
                               <>
-                                <div style={{ width: '240px', height: '240px', border: '3px solid var(--text-navy)', overflow: 'hidden', background: 'var(--yellow-star)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: '0.4rem' }}>
+                                <div style={{ width: ev.cardWidth || '240px', height: ev.cardHeight || '240px', border: '3px solid var(--text-navy)', overflow: 'hidden', background: 'var(--yellow-star)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: '0.4rem' }}>
                                   {ev.image ? (
                                     <img
                                       src={ev.image}
