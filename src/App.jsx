@@ -384,6 +384,11 @@ function App() {
   const [isDraggingPreview, setIsDraggingPreview] = useState(false);
   const dragStartRef = React.useRef({ mx: 0, my: 0, px: 50, py: 50 });
 
+  // Feedback Gating states
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const [feedbackText, setFeedbackText] = useState('');
+  const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
+
   useEffect(() => {
     const handleResize = () => {
       setIsMobile(window.innerWidth <= 768);
@@ -630,6 +635,7 @@ function App() {
   }, [a11ySettings.textToSpeech]);
 
   const [showAboutPopup, setShowAboutPopup] = useState(false);
+  const [showForgotPasswordPopup, setShowForgotPasswordPopup] = useState(false);
   const [showAikyamPopup, setShowAikyamPopup] = useState(false);
   const [showAdiPopup, setShowAdiPopup] = useState(false);
   const [showLTPopup, setShowLTPopup] = useState(false);
@@ -640,6 +646,13 @@ function App() {
   const [showWECPopup, setShowWECPopup] = useState(false);
   const [showFrenchToastPopup, setShowFrenchToastPopup] = useState(false);
   const [showESAFPopup, setShowESAFPopup] = useState(false);
+
+  const [judgeScores, setJudgeScores] = useState({});
+  const [tempScores, setTempScores] = useState({});
+  const [savingScoreId, setSavingScoreId] = useState(null);
+  const [allJudgeScores, setAllJudgeScores] = useState([]);
+  const [showroomTab, setShowroomTab] = useState('projects'); // 'projects' or 'judging'
+  const [expandedJudgeDescriptions, setExpandedJudgeDescriptions] = useState({});
 
   const playClickSound = () => {
     if (!isSoundEnabled || a11ySettings.muteSound) return;
@@ -1027,7 +1040,7 @@ function App() {
   const handleVerifyCheckin = async (userId) => {
     try {
       setScanResult({ success: true, message: 'Verifying with database...' });
-      
+
       // Clear any pending timeout first
       if (scanTimeoutRef.current) {
         clearTimeout(scanTimeoutRef.current);
@@ -1040,15 +1053,15 @@ function App() {
         .select('id, full_name, email, is_approved')
         .eq('id', userId)
         .single();
-        
+
       if (fetchError || !profile) {
         setScanResult({ success: false, message: 'Verification Failed: User ID not found.' });
         return;
       }
-      
+
       if (profile.is_approved) {
         setScanResult({ success: true, message: `${profile.full_name} is already checked in!`, user: profile });
-        
+
         // Auto-clear notification after 3 seconds so the screen is ready for the next attendee
         scanTimeoutRef.current = setTimeout(() => {
           setScanResult(null);
@@ -1061,7 +1074,7 @@ function App() {
         .from('profiles')
         .update({ is_approved: true })
         .eq('id', userId);
-        
+
       if (updateError) {
         setScanResult({ success: false, message: 'Database Update Failed: ' + updateError.message });
         return;
@@ -1074,12 +1087,12 @@ function App() {
           action: 'Attendance Check-in (QR)',
           details: { user_id: userId, name: profile.full_name, email: profile.email }
         }]);
-        
+
       setScanResult({ success: true, message: `Checked In: ${profile.full_name}!`, user: { ...profile, is_approved: true } });
-      
+
       // 4. Reload local user state to sync with dashboard grids & sheets
       fetchAllUsers();
-      
+
       // Auto-clear notification after 3 seconds so the screen is ready for the next attendee
       scanTimeoutRef.current = setTimeout(() => {
         setScanResult(null);
@@ -1095,7 +1108,7 @@ function App() {
       const timer = setTimeout(() => {
         if (window.Html5Qrcode) {
           const html5Qrcode = new window.Html5Qrcode("checkin-qr-reader");
-          
+
           html5Qrcode.start(
             { facingMode: "environment" },
             {
@@ -1113,13 +1126,13 @@ function App() {
             console.error("Camera access failed:", err);
             setScanResult({ success: false, message: "Camera permission denied or not found." });
           });
-          
+
           activeScannerRef.current = html5Qrcode;
         } else {
           setScanResult({ success: false, message: 'Camera Scanner Library not loaded yet. Please wait a second...' });
         }
       }, 300);
-      
+
       return () => {
         clearTimeout(timer);
         if (scanTimeoutRef.current) {
@@ -1227,11 +1240,11 @@ function App() {
     if (e) e.preventDefault();
     setIsMenuOpen(false);
     setActiveView('landing');
-    
+
     if (window.location.hash) {
       window.history.pushState("", document.title, window.location.pathname + window.location.search);
     }
-    
+
     setTimeout(() => {
       window.scrollTo({ top: 0, behavior: 'instant' });
     }, 100);
@@ -2575,7 +2588,7 @@ function App() {
     if (profilesData) {
       const mappedProfiles = await Promise.all(profilesData.map(async (u) => {
         let currentPhone = u.phone;
-        
+
         // Find corresponding whitelisted email phone if profile phone is missing
         const matchedWhitelist = whitelistData?.find(
           w => w.email?.toLowerCase().trim() === u.email?.toLowerCase().trim()
@@ -2649,7 +2662,7 @@ function App() {
   const handleReRunAudit = async (submission) => {
     try {
       const { data: { session: adminSession } } = await supabase.auth.getSession();
-      
+
       // Update local state to scanning
       setProjectSubmissions(prev => prev.map(s => s.id === submission.id ? { ...s, git_audit_status: 'scanning' } : s));
 
@@ -2667,7 +2680,7 @@ function App() {
       );
       const json = await res.json();
       if (!res.ok || json.error) throw new Error(json.error || 'Failed to analyze repository');
-      
+
       fetchSubmissions();
     } catch (err) {
       alert('Audit trigger failed: ' + err.message);
@@ -2848,9 +2861,292 @@ function App() {
     }
   };
 
+  const fetchJudgeScores = async () => {
+    if (!session?.user?.id || user.role !== 'judge') return;
+    try {
+      const { data, error } = await supabase
+        .from('judge_scores')
+        .select('*')
+        .eq('judge_id', session.user.id);
+      if (error) throw error;
+      if (data) {
+        const scoresMap = {};
+        data.forEach(score => {
+          scoresMap[score.project_id] = score;
+        });
+        setJudgeScores(scoresMap);
+      }
+    } catch (err) {
+      console.error('Failed to fetch judge scores:', err.message);
+    }
+  };
+
+  const fetchAllJudgeScores = async () => {
+    if (!session?.user?.id || user.role !== 'admin') return;
+    try {
+      const { data, error } = await supabase
+        .from('judge_scores')
+        .select('*')
+        .order('team_name', { ascending: true });
+      if (error) throw error;
+      if (data) {
+        setAllJudgeScores(data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch all judge scores:', err.message);
+    }
+  };
+
+  useEffect(() => {
+    if (activeView === 'showroom') {
+      if (user.role === 'judge') {
+        fetchJudgeScores();
+      } else if (user.role === 'admin') {
+        fetchAllJudgeScores();
+      }
+    }
+  }, [activeView, user.role, session?.user?.id]);
+
+  const handleScoreChange = (projectId, field, value) => {
+    setTempScores(prev => {
+      const current = prev[projectId] || judgeScores[projectId] || allJudgeScores.find(s => s.project_id === projectId) || {
+        innovation_score: 0,
+        technical_score: 0,
+        ux_score: 0,
+        impact_score: 0,
+        presentation_score: 0,
+        feasibility_score: 0,
+        remarks: ''
+      };
+      return {
+        ...prev,
+        [projectId]: {
+          ...current,
+          [field]: value
+        }
+      };
+    });
+  };
+
+  const handleSaveScore = async (projectId) => {
+    if (!session?.user?.id) {
+      alert("You must be logged in to save scores.");
+      return;
+    }
+
+    const submission = projectSubmissions.find(sub => sub.id === projectId);
+    if (!submission) {
+      alert("Project submission not found.");
+      return;
+    }
+
+    let currentScoreObj = tempScores[projectId];
+    if (!currentScoreObj) {
+      if (user.role === 'admin') {
+        currentScoreObj = allJudgeScores.find(s => s.project_id === projectId);
+      } else {
+        currentScoreObj = judgeScores[projectId];
+      }
+    }
+
+    if (!currentScoreObj) {
+      currentScoreObj = {};
+    }
+
+    const innovation = parseInt(currentScoreObj.innovation_score ?? 0);
+    const technical = parseInt(currentScoreObj.technical_score ?? 0);
+    const ux = parseInt(currentScoreObj.ux_score ?? 0);
+    const impact = parseInt(currentScoreObj.impact_score ?? 0);
+    const presentation = parseInt(currentScoreObj.presentation_score ?? 0);
+    const feasibility = parseInt(currentScoreObj.feasibility_score ?? 0);
+    const remarks = (currentScoreObj.remarks ?? '').toString().trim();
+    const totalMark = innovation + technical + ux + impact + presentation + feasibility;
+
+    if (innovation < 0 || innovation > 15) {
+      alert("Innovation score must be between 0 and 15.");
+      return;
+    }
+    if ([technical, ux, impact, presentation, feasibility].some(val => val < 0 || val > 10)) {
+      alert("Criteria scores must be between 0 and 10.");
+      return;
+    }
+
+    setSavingScoreId(projectId);
+
+    try {
+      const { data: teamData } = await supabase
+        .from('teams')
+        .select('id')
+        .ilike('name', submission.team_name)
+        .maybeSingle();
+
+      const teamId = teamData?.id || null;
+
+      let targetJudgeId = session.user.id;
+      let targetJudgeName = user.name || 'Anonymous Judge';
+
+      let dbRecordId = null;
+      if (user.role === 'admin') {
+        const existingRecord = allJudgeScores.find(s => s.project_id === projectId && s.id === currentScoreObj.id);
+        if (existingRecord) {
+          targetJudgeId = existingRecord.judge_id;
+          targetJudgeName = existingRecord.judge_name;
+          dbRecordId = existingRecord.id;
+        } else {
+          const adminExistingRecord = allJudgeScores.find(s => s.project_id === projectId && s.judge_id === session.user.id);
+          if (adminExistingRecord) {
+            dbRecordId = adminExistingRecord.id;
+          }
+        }
+      } else {
+        const existingRecord = judgeScores[projectId];
+        if (existingRecord) {
+          dbRecordId = existingRecord.id;
+        }
+      }
+
+      const upsertData = {
+        project_id: projectId,
+        judge_id: targetJudgeId,
+        judge_name: targetJudgeName,
+        team_name: submission.team_name,
+        team_id: teamId,
+        submitted_time: submission.submitted_at || submission.created_at || new Date().toISOString(),
+        ai_percentage: submission.ai_percentage || 0,
+        innovation_score: innovation,
+        technical_score: technical,
+        ux_score: ux,
+        impact_score: impact,
+        presentation_score: presentation,
+        feasibility_score: feasibility,
+        remarks: remarks,
+        total_mark: totalMark,
+        updated_at: new Date().toISOString()
+      };
+
+      if (dbRecordId) {
+        upsertData.id = dbRecordId;
+      }
+
+      const { data: savedRecord, error: upsertError } = await supabase
+        .from('judge_scores')
+        .upsert([upsertData])
+        .select()
+        .single();
+
+      if (upsertError) throw upsertError;
+
+      if (user.role === 'admin') {
+        setAllJudgeScores(prev => {
+          const filtered = prev.filter(s => s.id !== savedRecord.id);
+          return [...filtered, savedRecord].sort((a, b) => a.team_name.localeCompare(b.team_name));
+        });
+      } else {
+        setJudgeScores(prev => ({
+          ...prev,
+          [projectId]: savedRecord
+        }));
+      }
+
+      setTempScores(prev => {
+        const copy = { ...prev };
+        delete copy[projectId];
+        return copy;
+      });
+
+      const googleScriptUrl = import.meta.env.VITE_GOOGLE_SCRIPT_URL || 'https://script.google.com/macros/s/AKfycbxegpLYC3j5i1UIGffgpRXdHOZ6pgDVDQSc3qyY-_xNs5z0MopMkH_ezspB5PTpF2U/exec';
+      if (googleScriptUrl) {
+        fetch(googleScriptUrl, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(savedRecord)
+        }).catch(e => console.error('Failed to sync to Google Sheets:', e));
+      }
+
+      alert("Scores saved and synced successfully!");
+    } catch (err) {
+      alert("Failed to save score: " + err.message);
+    } finally {
+      setSavingScoreId(null);
+    }
+  };
+
+  const handleDownloadJudgeScoresCSV = () => {
+    if (allJudgeScores.length === 0) {
+      alert('No judge scores found to export.');
+      return;
+    }
+
+    const headers = [
+      'Judge Name',
+      'Team Name',
+      'Team ID',
+      'Project Name',
+      'Submitted Time',
+      'AI Percentage',
+      'Innovation (Max 15)',
+      'Technical (Max 10)',
+      'UX (Max 10)',
+      'Impact (Max 10)',
+      'Presentation (Max 10)',
+      'Feasibility (Max 10)',
+      'Total Mark',
+      'Special Remarks',
+      'Last Updated'
+    ];
+
+    const rows = allJudgeScores.map(score => {
+      const submission = projectSubmissions.find(sub => sub.id === score.project_id);
+      const projectName = submission?.project_name || score.project_name || '';
+
+      return [
+        score.judge_name || '',
+        score.team_name || '',
+        score.team_id || '',
+        projectName,
+        score.submitted_time ? new Date(score.submitted_time).toLocaleString() : '',
+        score.ai_percentage !== null && score.ai_percentage !== undefined ? `${score.ai_percentage}%` : '0%',
+        score.innovation_score || 0,
+        score.technical_score || 0,
+        score.ux_score || 0,
+        score.impact_score || 0,
+        score.presentation_score || 0,
+        score.feasibility_score || 0,
+        score.total_mark || 0,
+        score.remarks || '',
+        score.updated_at ? new Date(score.updated_at).toLocaleString() : ''
+      ];
+    });
+
+    const csvContent = [
+      headers.map(h => `"${h.replace(/"/g, '""')}"`).join(','),
+      ...rows.map(row => row.map(val => `"${String(val).replace(/"/g, '""')}"`).join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `starlet_judge_scores_export.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const fetchSubmissions = async () => {
     const { data } = await supabase.from('project_submissions').select('*');
     if (data) setProjectSubmissions(data);
+    if (session?.user?.id) {
+      if (user.role === 'judge') {
+        await fetchJudgeScores();
+      } else if (user.role === 'admin') {
+        await fetchAllJudgeScores();
+      }
+    }
   };
 
   const fetchMySubmission = async () => {
@@ -2895,7 +3191,7 @@ function App() {
       alert('Project submissions are currently closed by the admin.');
       return;
     }
-    
+
     // Leadership Check (Attendees only)
     if (user.role === 'attendee' && user.teamName && !user.isTeamLeader) {
       alert('Only the Team Leader can submit the project for your team!');
@@ -3235,8 +3531,8 @@ function App() {
       sub.description || '',
       sub.tech_stack || '',
       sub.github_url || '',
-      sub.ppt_link || '', 
-      sub.demo_url || '', 
+      sub.ppt_link || '',
+      sub.demo_url || '',
       sub.submitted_by || '',
       sub.submitted_at || sub.created_at || ''
     ]);
@@ -3466,7 +3762,7 @@ function App() {
       if (existingTeam) {
         finalTeamId = existingTeam.id;
         finalTeamName = existingTeam.name;
-        
+
         // Check if there are already members in this team
         const { data: teamMembers } = await supabase
           .from('profiles')
@@ -3699,15 +3995,15 @@ function App() {
         .select('id, rename_count, name')
         .eq('id', user.teamId)
         .single();
-        
+
       if (fetchError) throw fetchError;
-      
+
       const currentRenameCount = teamData.rename_count || 0;
       if (currentRenameCount >= 2) {
         alert('You can only rename your team up to 2 times!');
         return;
       }
-      
+
       // Check case-insensitive uniqueness (excluding current team name)
       if (teamData.name.trim().toLowerCase() !== newTeamName.toLowerCase()) {
         const { data: duplicateTeam } = await supabase
@@ -3715,13 +4011,13 @@ function App() {
           .select('id')
           .ilike('name', newTeamName)
           .maybeSingle();
-          
+
         if (duplicateTeam) {
           alert('A team with this name already exists. Please choose another name!');
           return;
         }
       }
-      
+
       // 2. Update the team name and increment rename_count in 'teams' table
       const { error: teamUpdateError } = await supabase
         .from('teams')
@@ -3730,9 +4026,9 @@ function App() {
           rename_count: currentRenameCount + 1
         })
         .eq('id', user.teamId);
-        
+
       if (teamUpdateError) throw teamUpdateError;
-      
+
       // 3. Update all team members' profiles team_name field
       const { error: profilesUpdateError } = await supabase
         .from('profiles')
@@ -3740,9 +4036,9 @@ function App() {
           team_name: newTeamName
         })
         .eq('team_id', user.teamId);
-        
+
       if (profilesUpdateError) throw profilesUpdateError;
-      
+
       alert('Team renamed successfully!');
       fetchProfile(session.user.id);
       fetchMyTeamMembers();
@@ -4090,6 +4386,63 @@ function App() {
     }
   };
 
+  const getWordCount = (text) => {
+    if (!text) return 0;
+    return text.trim().split(/\s+/).filter(word => word.length > 0).length;
+  };
+
+  const handleClaimCertificateClick = () => {
+    if (localStorage.getItem(`feedback_submitted_${user.id}`) === 'true') {
+      setActiveView('certificate');
+    } else {
+      setShowFeedbackModal(true);
+    }
+  };
+
+  const handleSubmitFeedback = async () => {
+    const wordCount = getWordCount(feedbackText);
+    if (wordCount < 100) {
+      alert(`Please write at least 100 words. Current count: ${wordCount}`);
+      return;
+    }
+
+    setIsSubmittingFeedback(true);
+    try {
+      const googleScriptUrl = import.meta.env.VITE_GOOGLE_SCRIPT_URL || 'https://script.google.com/macros/s/AKfycbxegpLYC3j5i1UIGffgpRXdHOZ6pgDVDQSc3qyY-_xNs5z0MopMkH_ezspB5PTpF2U/exec';
+      
+      const payload = {
+        action: 'feedback',
+        name: user.name || 'Anonymous',
+        email: user.email || '—',
+        college: user.college || '—',
+        feedback: feedbackText
+      };
+
+      if (googleScriptUrl) {
+        await fetch(googleScriptUrl, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(payload)
+        });
+      }
+
+      localStorage.setItem(`feedback_submitted_${user.id}`, 'true');
+      setShowFeedbackModal(false);
+      setFeedbackText('');
+      
+      setActiveView('certificate');
+      alert('Thank you for your feedback! Your certificate has been unlocked.');
+    } catch (error) {
+      console.error('Feedback submit error:', error);
+      alert('Failed to submit feedback: ' + error.message + '. Please try again.');
+    } finally {
+      setIsSubmittingFeedback(false);
+    }
+  };
+
 
   // ==========================================
 
@@ -4262,6 +4615,35 @@ function App() {
     }
   };
 
+
+  const filteredSubmissionsForJudge = projectSubmissions.filter(sub => {
+    if (!showroomSearchQuery) return true;
+    const q = showroomSearchQuery.toLowerCase().trim();
+    const teamName = (sub.team_name || '').toLowerCase();
+    const projectName = (sub.project_name || '').toLowerCase();
+
+    const teamLeader = allUsers.find(u => u.team_name === sub.team_name && u.is_team_leader);
+    const leaderName = teamLeader ? (teamLeader.full_name || '').toLowerCase() : '';
+    const submitter = allUsers.find(u => u.id === sub.submitted_by);
+    const submitterName = submitter ? (submitter.full_name || '').toLowerCase() : '';
+
+    return teamName.includes(q) || projectName.includes(q) || leaderName.includes(q) || submitterName.includes(q);
+  });
+
+  const filteredScoresForAdmin = allJudgeScores.filter(score => {
+    if (!showroomSearchQuery) return true;
+    const q = showroomSearchQuery.toLowerCase().trim();
+    const teamName = (score.team_name || '').toLowerCase();
+    const judgeName = (score.judge_name || '').toLowerCase();
+
+    const sub = projectSubmissions.find(s => s.id === score.project_id);
+    const projectName = sub ? (sub.project_name || '').toLowerCase() : '';
+
+    const teamLeader = allUsers.find(u => u.team_name === score.team_name && u.is_team_leader);
+    const leaderName = teamLeader ? (teamLeader.full_name || '').toLowerCase() : '';
+
+    return teamName.includes(q) || judgeName.includes(q) || projectName.includes(q) || leaderName.includes(q);
+  });
 
   if (loading) {
     return (
@@ -5147,7 +5529,7 @@ function App() {
                       <div className="judging-criteria-deck" style={{ marginTop: '3.5rem', marginBottom: '3.5rem' }}>
                         <h3 className="arcade-subtitle">JUDGING CRITERIA</h3>
                         <div className="arcade-criteria-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '2rem', padding: '1rem' }}>
-                          
+
                           <div className="arcade-char-card" style={{ padding: '1.5rem', border: '3px solid var(--text-navy)', background: 'var(--bg-cream)', boxShadow: '5px 5px 0px var(--text-navy)', borderRadius: '16px', display: 'flex', flexDirection: 'column', gap: '0.8rem', position: 'relative' }}>
                             <div style={{ position: 'absolute', top: '-15px', right: '15px', background: 'var(--pink-primary)', color: '#fff', padding: '0.3rem 0.8rem', border: '2px solid var(--text-navy)', borderRadius: '10px', fontFamily: "'Fredoka One', cursive", fontSize: '0.9rem', boxShadow: '2px 2px 0px var(--text-navy)' }}>
                               15 MARKS
@@ -5700,7 +6082,7 @@ function App() {
                   <input name="password" type="password" placeholder="Password" required />
                   <div
                     style={{ textAlign: 'right', fontSize: '0.8rem', cursor: 'pointer', color: 'var(--pink-primary)', fontWeight: 'bold', marginTop: '-0.5rem' }}
-                    onClick={() => setActiveView('forgot-password')}
+                    onClick={() => setShowForgotPasswordPopup(true)}
                   >
                     Forgot Password?
                   </div>
@@ -5911,10 +6293,10 @@ function App() {
                     <h3>Live Announcement</h3>
                     <div style={{ marginTop: '1rem' }}>
                       <textarea
-                        style={{ 
-                          width: '100%', 
-                          padding: '1rem', 
-                          borderRadius: '8px', 
+                        style={{
+                          width: '100%',
+                          padding: '1rem',
+                          borderRadius: '8px',
                           border: '1px solid #ddd',
                           overflowY: 'hidden',
                           resize: 'vertical'
@@ -5943,9 +6325,9 @@ function App() {
                           <button
                             onClick={clearAnnouncementHistory}
                             className="btn-small decline"
-                            style={{ 
-                              padding: '0.2rem 0.5rem', 
-                              fontSize: '0.75rem', 
+                            style={{
+                              padding: '0.2rem 0.5rem',
+                              fontSize: '0.75rem',
                               cursor: 'pointer',
                               border: '2px solid var(--text-navy)',
                               boxShadow: '2px 2px 0px var(--text-navy)',
@@ -6898,7 +7280,7 @@ function App() {
                                                     if (cleanPhone && cleanPhone.length === 10) {
                                                       cleanPhone = '91' + cleanPhone;
                                                     }
-                                                    const waHref = cleanPhone 
+                                                    const waHref = cleanPhone
                                                       ? `https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`
                                                       : `https://wa.me/?text=${encodeURIComponent(msg)}`;
                                                     return (
@@ -7172,13 +7554,12 @@ function App() {
                                   </td>
                                   <td>
                                     {sub ? (
-                                      <span className={`role-badge ${
-                                        sub.git_audit_status === 'passed' ? 'accept' :
-                                        sub.git_audit_status === 'scanning' ? 'pending' : 'decline'
-                                      }`} style={{ background: sub.git_audit_status === 'scanning' ? '#2b6cb0' : undefined }}>
+                                      <span className={`role-badge ${sub.git_audit_status === 'passed' ? 'accept' :
+                                          sub.git_audit_status === 'scanning' ? 'pending' : 'decline'
+                                        }`} style={{ background: sub.git_audit_status === 'scanning' ? '#2b6cb0' : undefined }}>
                                         {sub.git_audit_status === 'scanning' ? '⏳ SCANNING' :
-                                         sub.git_audit_status === 'passed' ? '✅ PASSED' :
-                                         sub.git_audit_status === 'flagged' ? '⚠️ FLAGGED' : '⏳ PENDING'}
+                                          sub.git_audit_status === 'passed' ? '✅ PASSED' :
+                                            sub.git_audit_status === 'flagged' ? '⚠️ FLAGGED' : '⏳ PENDING'}
                                       </span>
                                     ) : '-'}
                                   </td>
@@ -7222,8 +7603,8 @@ function App() {
                                                 <strong style={{
                                                   fontSize: '0.9rem',
                                                   color: sub.git_audit_status === 'passed' ? '#48bb78' :
-                                                         sub.git_audit_status === 'scanning' ? '#4299e1' :
-                                                         sub.git_audit_status === 'flagged' ? '#f56565' : '#a0aec0'
+                                                    sub.git_audit_status === 'scanning' ? '#4299e1' :
+                                                      sub.git_audit_status === 'flagged' ? '#f56565' : '#a0aec0'
                                                 }}>
                                                   {sub.git_audit_status?.toUpperCase() || 'PENDING'}
                                                 </strong>
@@ -8147,7 +8528,7 @@ function App() {
                           color: '#001f3f',
                           gridColumn: 'span 2'
                         }}
-                        onClick={() => setActiveView('certificate')}
+                        onClick={handleClaimCertificateClick}
                       >
                         <img src="svg/emoji/certificate.svg" className="emoji-icon" alt="Certificate" /> CLAIM ACHIEVEMENT CERTIFICATE
                       </div>
@@ -8174,23 +8555,23 @@ function App() {
                 <div className="profile-card" style={{ marginTop: '2rem', padding: '2rem', background: 'rgba(255,255,255,0.05)', borderRadius: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', textAlign: 'center' }}>
                   <h3 className="text-3d" style={{ fontSize: '1.5rem', margin: 0 }}>Project Submission</h3>
                   <p style={{ margin: 0, opacity: 0.8, fontSize: '0.95rem', color: '#fff' }}>
-                    {mySubmission 
+                    {mySubmission
                       ? `Your project "${mySubmission.project_name}" is successfully submitted!`
                       : "Submit your final hackathon project files, presentation slides, and source code link."}
                   </p>
                   <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', width: '100%', marginTop: '0.5rem', flexWrap: 'wrap' }}>
                     {!mySubmission && (
-                      <a 
-                        href={settings.google_drive_link || "https://drive.google.com"} 
-                        target="_blank" 
-                        rel="noopener noreferrer" 
+                      <a
+                        href={settings.google_drive_link || "https://drive.google.com"}
+                        target="_blank"
+                        rel="noopener noreferrer"
                         className="btn-small accept"
                         style={{ padding: '0.8rem 1.5rem', borderRadius: '12px', textDecoration: 'none', fontFamily: 'Fredoka One', minWidth: '200px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', height: '48px', boxSizing: 'border-box' }}
                       >
                         📂 UPLOAD TO DRIVE
                       </a>
                     )}
-                    <button 
+                    <button
                       onClick={() => setIsProjectModalOpen(true)}
                       className="join-btn"
                       style={{ minWidth: '200px', cursor: 'pointer', height: '48px', boxSizing: 'border-box', margin: 0 }}
@@ -9146,238 +9527,733 @@ function App() {
       ) : activeView === 'showroom' ? (
         <div className="showroom-container">
           <div className="section-header" style={{ marginBottom: '3rem', textAlign: 'center' }}>
-            <h1 className="text-3d" style={{ fontSize: '3rem', marginBottom: '1rem' }}>Project Showroom</h1>
-            <p className="subtitle-large" style={{ color: 'var(--text-muted)', marginBottom: '2rem' }}>
-              Explore the amazing innovations created by all teams at Starlet 5.0!
-            </p>
-            
-            {/* Showroom Search Bar */}
-            <div style={{ maxWidth: '600px', margin: '0 auto', position: 'relative' }}>
-              <span style={{ position: 'absolute', left: '1.25rem', top: '50%', transform: 'translateY(-50%)', display: 'flex', alignItems: 'center' }}>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--text-navy)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="11" cy="11" r="8"></circle>
-                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                </svg>
-              </span>
-              <input
-                type="text"
-                placeholder="Search by Team Name or Team Leader Name..."
-                value={showroomSearchQuery}
-                onChange={(e) => setShowroomSearchQuery(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '1rem 1.5rem 1rem 3.2rem',
-                  fontSize: '1.05rem',
-                  fontFamily: 'Outfit',
-                  borderRadius: '16px',
-                  border: '3px solid var(--text-navy)',
-                  background: 'var(--bg-cream)',
-                  boxShadow: '4px 4px 0px var(--text-navy)',
-                  color: 'var(--text-navy)',
-                  outline: 'none',
-                  transition: 'transform 0.1s, box-shadow 0.1s'
-                }}
-                onFocus={(e) => {
-                  e.target.style.transform = 'translate(-2px, -2px)';
-                  e.target.style.boxShadow = '6px 6px 0px var(--text-navy)';
-                }}
-                onBlur={(e) => {
-                  e.target.style.transform = 'none';
-                  e.target.style.boxShadow = '4px 4px 0px var(--text-navy)';
-                }}
-              />
-              {showroomSearchQuery && (
-                <button
-                  onClick={() => setShowroomSearchQuery('')}
+            <h1 className="text-3d" style={{ fontSize: '3rem', marginBottom: '1rem' }}>Project Showroom {user.role && <span style={{ fontSize: '1rem', opacity: 0.6 }}> ({user.role})</span>}</h1>
+            {user.role === 'judge' ? (
+              <p className="subtitle-large" style={{ color: 'var(--text-muted)', marginBottom: '2rem' }}>
+                Welcome, Judge! Score each team's project below. Updates sync in real-time to the database and Google Sheets.
+              </p>
+            ) : user.role === 'admin' ? (
+              <>
+                <p className="subtitle-large" style={{ color: 'var(--text-muted)', marginBottom: '2rem' }}>
+                  Manage and monitor judging activities and results.
+                </p>
+                <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem', marginBottom: '2rem' }}>
+                  <button
+                    onClick={() => setShowroomTab('projects')}
+                    className="join-btn"
+                    style={{ background: showroomTab === 'projects' ? 'var(--pink-primary)' : 'var(--yellow-star)', color: showroomTab === 'projects' ? '#fff' : 'var(--text-navy)', padding: '0.6rem 1.5rem', borderRadius: '12px', border: '2.5px solid var(--text-navy)', boxShadow: '3px 3px 0px var(--text-navy)', fontFamily: "'Fredoka One', cursive", fontSize: '0.9rem', cursor: 'pointer' }}
+                  >
+                    PROJECTS VIEW
+                  </button>
+                  <button
+                    onClick={() => setShowroomTab('judging')}
+                    className="join-btn"
+                    style={{ background: showroomTab === 'judging' ? 'var(--pink-primary)' : 'var(--yellow-star)', color: showroomTab === 'judging' ? '#fff' : 'var(--text-navy)', padding: '0.6rem 1.5rem', borderRadius: '12px', border: '2.5px solid var(--text-navy)', boxShadow: '3px 3px 0px var(--text-navy)', fontFamily: "'Fredoka One', cursive", fontSize: '0.9rem', cursor: 'pointer' }}
+                  >
+                    JUDGING OVERVIEW
+                  </button>
+                </div>
+              </>
+            ) : (
+              <p className="subtitle-large" style={{ color: 'var(--text-muted)', marginBottom: '2rem' }}>
+                Explore the amazing innovations created by all teams at Starlet 5.0!
+              </p>
+            )}
+
+            {true && (
+              <div style={{ maxWidth: '600px', margin: '0 auto', position: 'relative' }}>
+                <span style={{ position: 'absolute', left: '1.25rem', top: '50%', transform: 'translateY(-50%)', display: 'flex', alignItems: 'center' }}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--text-navy)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                  </svg>
+                </span>
+                <input
+                  type="text"
+                  placeholder="Search by Team Name or Team Leader Name..."
+                  value={showroomSearchQuery}
+                  onChange={(e) => setShowroomSearchQuery(e.target.value)}
                   style={{
-                    position: 'absolute',
-                    right: '1.2rem',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    background: 'none',
-                    border: 'none',
+                    width: '100%',
+                    padding: '1rem 1.5rem 1rem 3.2rem',
+                    fontSize: '1.05rem',
+                    fontFamily: 'Outfit',
+                    borderRadius: '16px',
+                    border: '3px solid var(--text-navy)',
+                    background: 'var(--bg-cream)',
+                    boxShadow: '4px 4px 0px var(--text-navy)',
                     color: 'var(--text-navy)',
-                    fontSize: '1.4rem',
-                    cursor: 'pointer',
-                    fontWeight: 'bold',
-                    padding: 0
+                    outline: 'none',
+                    transition: 'transform 0.1s, box-shadow 0.1s'
                   }}
-                >
-                  ×
-                </button>
-              )}
-            </div>
+                  onFocus={(e) => {
+                    e.target.style.transform = 'translate(-2px, -2px)';
+                    e.target.style.boxShadow = '6px 6px 0px var(--text-navy)';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.transform = 'none';
+                    e.target.style.boxShadow = '4px 4px 0px var(--text-navy)';
+                  }}
+                />
+                {showroomSearchQuery && (
+                  <button
+                    onClick={() => setShowroomSearchQuery('')}
+                    style={{
+                      position: 'absolute',
+                      right: '1.2rem',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      background: 'none',
+                      border: 'none',
+                      color: 'var(--text-navy)',
+                      fontSize: '1.4rem',
+                      cursor: 'pointer',
+                      fontWeight: 'bold',
+                      padding: 0
+                    }}
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
+            )}
           </div>
 
-          {(() => {
-            const filteredSubmissions = projectSubmissions.filter(sub => {
-              if (!showroomSearchQuery.trim()) return true;
-              const query = showroomSearchQuery.toLowerCase().trim();
-              const teamName = (sub.team_name || '').toLowerCase();
-              const leaderName = getSubmissionTeamLeader(sub.team_name).toLowerCase();
-              const projectName = (sub.project_name || '').toLowerCase();
-              return teamName.includes(query) || leaderName.includes(query) || projectName.includes(query);
-            });
+          {user.role === 'judge' ? (
+            <div style={{ marginTop: '2rem' }}>
+              <h2 className="text-3d" style={{ fontSize: '1.8rem', marginBottom: '1.5rem' }}>Evaluation Accordion Sheet</h2>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                {filteredSubmissionsForJudge.length === 0 ? (
+                  <div className="no-squads-container" style={{ padding: '3rem', border: '3px dashed var(--text-navy)', background: 'var(--bg-cream)' }}>
+                    <p style={{ color: 'var(--text-muted)', fontFamily: 'Outfit', fontWeight: 'bold' }}>
+                      {projectSubmissions.length === 0 ? 'No submissions available to grade yet.' : 'No matching projects found.'}
+                    </p>
+                  </div>
+                ) : (
+                  filteredSubmissionsForJudge.map((sub) => {
+                    const pId = sub.id;
+                    const getVal = (field, def = 0) => {
+                      if (tempScores[pId] && tempScores[pId][field] !== undefined) return tempScores[pId][field];
+                      if (judgeScores[pId] && judgeScores[pId][field] !== undefined) return judgeScores[pId][field];
+                      return def;
+                    };
+                    const getRemarksVal = () => {
+                      if (tempScores[pId] && tempScores[pId].remarks !== undefined) return tempScores[pId].remarks;
+                      if (judgeScores[pId] && judgeScores[pId].remarks !== undefined) return judgeScores[pId].remarks;
+                      return '';
+                    };
+                    const currentInnovation = parseInt(getVal('innovation_score', 0));
+                    const currentTechnical = parseInt(getVal('technical_score', 0));
+                    const currentUx = parseInt(getVal('ux_score', 0));
+                    const currentImpact = parseInt(getVal('impact_score', 0));
+                    const currentPresentation = parseInt(getVal('presentation_score', 0));
+                    const currentFeasibility = parseInt(getVal('feasibility_score', 0));
+                    const totalSum = currentInnovation + currentTechnical + currentUx + currentImpact + currentPresentation + currentFeasibility;
 
-            if (projectSubmissions.length === 0) {
-              return (
-                <div style={{ textAlign: 'center', padding: '4rem', background: 'var(--bg-cream)', border: '4px solid var(--text-navy)', borderRadius: '24px', boxShadow: '8px 8px 0px var(--text-navy)' }}>
-                  <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>🚀</div>
-                  <h3 style={{ fontFamily: 'Fredoka One', color: 'var(--text-navy)', fontSize: '1.5rem', marginBottom: '0.5rem' }}>No Submissions Yet</h3>
-                  <p style={{ fontFamily: 'Outfit', color: 'var(--text-muted)' }}>Check back once hacking finishes and teams submit their projects!</p>
-                </div>
-              );
-            }
+                    const isSaved = judgeScores[pId] && (!tempScores[pId] || Object.keys(tempScores[pId]).length === 0);
+                    const isExpanded = !!expandedJudgeDescriptions[pId];
 
-            if (filteredSubmissions.length === 0) {
-              return (
-                <div style={{ textAlign: 'center', padding: '4rem', background: 'var(--bg-cream)', border: '4px solid var(--text-navy)', borderRadius: '24px', boxShadow: '8px 8px 0px var(--text-navy)' }}>
-                  <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>🔍</div>
-                  <h3 style={{ fontFamily: 'Fredoka One', color: 'var(--text-navy)', fontSize: '1.5rem', marginBottom: '0.5rem' }}>No Matching Projects Found</h3>
-                  <p style={{ fontFamily: 'Outfit', color: 'var(--text-muted)' }}>Try refining your search query or check spelling.</p>
-                </div>
-              );
-            }
-
-            return (
-              <div className="showroom-grid">
-                {filteredSubmissions.map((submission) => {
-                  const formattedTime = submission.created_at 
-                    ? new Date(submission.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }) + ' ' + new Date(submission.created_at).toLocaleDateString([], { month: 'short', day: 'numeric' })
-                    : 'N/A';
-                  const leaderName = getSubmissionTeamLeader(submission.team_name);
-
-                  return (
-                    <div key={submission.id} className="blog-post-card" style={{ padding: '2rem', display: 'flex', flexDirection: 'column', height: '100%', gap: '1rem', background: '#fff', textAlign: 'left' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span className="sidebar-tag" style={{ background: 'var(--pink-primary)', color: '#fff', border: 'none', fontWeight: 'bold' }}>
-                          {submission.team_name}
-                        </span>
-                        <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 'bold' }}>
-                          🕒 {formattedTime}
-                        </span>
-                      </div>
-
-                      <h3 style={{ fontFamily: 'Fredoka One', color: 'var(--text-navy)', fontSize: '1.4rem', margin: '0.5rem 0 0.2rem 0' }}>
-                        {submission.project_name}
-                      </h3>
-
-                      {leaderName && (
-                        <p style={{ fontFamily: 'Outfit', color: 'var(--text-navy)', fontSize: '0.88rem', margin: '0 0 0.2rem 0', textAlign: 'left' }}>
-                          <strong>👑 Leader:</strong> {leaderName}
-                        </p>
-                      )}
-
-                      {submission.tech_stack && (
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
-                          {submission.tech_stack.split(',').map((tech, i) => (
-                            <span key={i} className="sidebar-tag" style={{ fontSize: '0.75rem', background: '#fff', border: '1.5px solid var(--text-navy)' }}>
-                              {tech.trim()}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-
-                      <p style={{ fontFamily: 'Outfit', color: 'var(--text-navy)', fontSize: '0.92rem', lineHeight: '1.5', flexGrow: 1, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebKitLineClamp: 4, WebKitBoxOrient: 'vertical', textAlign: 'left', margin: '0.5rem 0' }}>
-                        {submission.description}
-                      </p>
-
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem', marginTop: 'auto', paddingTop: '1rem', borderTop: '2px dashed rgba(0, 31, 63, 0.15)' }}>
-                      {submission.github_url && (
-                        <a 
-                          href={submission.github_url.startsWith('http') ? submission.github_url : `https://${submission.github_url}`} 
-                          target="_blank" 
-                          rel="noopener noreferrer" 
-                          className="social-connect-item-view"
-                          style={{ margin: 0, textDecoration: 'none', background: '#fff', border: '2px solid var(--text-navy)', padding: '0.7rem 1rem', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '0.5rem', transition: 'transform 0.1s' }}
+                    return (
+                      <div
+                        key={pId}
+                        style={{
+                          background: 'var(--bg-cream)',
+                          border: '3px solid var(--text-navy)',
+                          borderRadius: '16px',
+                          boxShadow: '4px 4px 0px var(--text-navy)',
+                          overflow: 'hidden',
+                          transition: 'all 0.2s'
+                        }}
+                      >
+                        {/* Header (Always Visible) */}
+                        <div
+                          onClick={() => setExpandedJudgeDescriptions(prev => ({ ...prev, [pId]: !prev[pId] }))}
+                          style={{
+                            padding: '1.2rem 1.5rem',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            cursor: 'pointer',
+                            background: isExpanded ? 'rgba(0, 31, 63, 0.05)' : 'rgba(0, 31, 63, 0.02)',
+                            userSelect: 'none'
+                          }}
                         >
-                          <img src="icons/github.svg" alt="GitHub" style={{ width: '20px', height: '20px' }} />
-                          <span style={{ fontFamily: 'Fredoka One', color: 'var(--text-navy)', fontSize: '0.9rem' }}>Github Repository</span>
-                        </a>
-                      )}
-
-                      {submission.demo_url && (
-                        <a 
-                          href={submission.demo_url.startsWith('http') ? submission.demo_url : `https://${submission.demo_url}`} 
-                          target="_blank" 
-                          rel="noopener noreferrer" 
-                          className="social-connect-item-view"
-                          style={{ margin: 0, textDecoration: 'none', background: 'var(--pink-primary)', color: '#fff', border: '2px solid var(--text-navy)', padding: '0.7rem 1rem', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '0.5rem', transition: 'transform 0.1s', boxShadow: '3px 3px 0px var(--text-navy)' }}
-                        >
-                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h6" />
-                            <polyline points="15 3 21 3 21 9" />
-                            <line x1="10" y1="14" x2="21" y2="3" />
-                          </svg>
-                          <span style={{ fontFamily: 'Fredoka One', fontSize: '0.9rem' }}>Live Project Website</span>
-                        </a>
-                      )}
-
-                      {submission.ppt_link && (
-                        <>
-                          <a 
-                            href={submission.ppt_link.startsWith('http') ? submission.ppt_link : `https://${submission.ppt_link}`} 
-                            target="_blank" 
-                            rel="noopener noreferrer" 
-                            className="social-connect-item-view"
-                            style={{ margin: 0, textDecoration: 'none', background: '#fff', border: '2px solid var(--text-navy)', padding: '0.7rem 1rem', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '0.5rem', transition: 'transform 0.1s' }}
-                          >
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--text-navy)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                              <polyline points="7 10 12 15 17 10" />
-                              <line x1="12" y1="15" x2="12" y2="3" />
-                            </svg>
-                            <span style={{ fontFamily: 'Fredoka One', color: 'var(--text-navy)', fontSize: '0.9rem' }}>Open OneDrive Folder</span>
-                          </a>
-
-                          <button
-                            onClick={() => setExpandedProject(expandedProject === submission.id ? null : submission.id)}
-                            className="social-connect-item-view"
-                            style={{ margin: 0, border: '2px solid var(--text-navy)', padding: '0.7rem 1rem', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', background: expandedProject === submission.id ? 'var(--pink-primary)' : 'var(--yellow-star)', color: expandedProject === submission.id ? '#fff' : 'var(--text-navy)', boxShadow: '3px 3px 0px var(--text-navy)', transition: 'all 0.1s' }}
-                          >
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                              {expandedProject === submission.id ? (
-                                <>
-                                  <line x1="18" y1="6" x2="6" y2="18" />
-                                  <line x1="6" y1="6" x2="18" y2="18" />
-                                </>
-                              ) : (
-                                <>
-                                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                                  <circle cx="12" cy="12" r="3" />
-                                </>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', textAlign: 'left' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', flexWrap: 'wrap' }}>
+                              <strong style={{ fontSize: '1.2rem', color: 'var(--text-navy)' }}>{sub.team_name}</strong>
+                              <span style={{ fontSize: '0.75rem', background: 'var(--pink-primary)', color: '#fff', padding: '0.15rem 0.5rem', borderRadius: '8px', fontWeight: 'bold', border: '1.5px solid var(--text-navy)' }}>
+                                Score: {totalSum} / 65
+                              </span>
+                              {isSaved && (
+                                <span style={{ fontSize: '0.75rem', color: '#48bb78', fontWeight: 'bold' }}>
+                                  Saved ✓
+                                </span>
                               )}
-                            </svg>
-                            <span style={{ fontFamily: 'Fredoka One', fontSize: '0.9rem' }}>
-                              {expandedProject === submission.id ? 'Hide Live Folder' : 'Live Folder Preview'}
-                            </span>
-                          </button>
-                        </>
-                      )}
-                    </div>
+                            </div>
+                            <span style={{ fontSize: '0.9rem', color: 'var(--text-navy)', opacity: 0.8, fontWeight: '500' }}>{sub.project_name || 'No Project Name'}</span>
+                          </div>
 
-                    {expandedProject === submission.id && submission.ppt_link && (
-                      <div style={{ marginTop: '1.2rem', width: '100%', height: '420px', border: '3.5px solid var(--text-navy)', borderRadius: '18px', overflow: 'hidden', background: '#fff', position: 'relative', boxShadow: 'inset 0 4px 10px rgba(0,0,0,0.06)' }}>
-                        <iframe 
-                          src={getEmbedLink(submission.ppt_link)} 
-                          style={{ width: '100%', height: '100%', border: 'none' }}
-                          title={`Project Preview - ${submission.project_name}`}
-                          allow="autoplay; encrypted-media"
-                        ></iframe>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+                            <span style={{ fontSize: '0.85rem', color: 'var(--text-navy)', opacity: 0.8, fontFamily: 'Outfit' }}>
+                              Submitted: {sub.submitted_at ? new Date(sub.submitted_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}
+                            </span>
+                            <div style={{
+                              transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                              transition: 'transform 0.2s',
+                              display: 'flex',
+                              alignItems: 'center'
+                            }}>
+                              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--text-navy)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                <polyline points="6 9 12 15 18 9"></polyline>
+                              </svg>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Collapsible Content */}
+                        {isExpanded && (
+                          <div style={{ padding: '1.5rem', borderTop: '3px solid var(--text-navy)', background: '#fff', textAlign: 'left' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
+
+                              {/* Description & Tech Stack */}
+                              <div>
+                                <h4 style={{ margin: '0 0 0.4rem 0', fontSize: '0.95rem', color: 'var(--text-navy)', fontFamily: "'Fredoka One', cursive" }}>Project Description</h4>
+                                <p style={{ margin: 0, fontSize: '0.88rem', color: 'var(--text-navy)', fontFamily: 'Outfit', lineHeight: '1.5' }}>
+                                  {sub.description || 'No description provided.'}
+                                </p>
+                                {sub.tech_stack && (
+                                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem', marginTop: '0.6rem' }}>
+                                    {sub.tech_stack.split(',').map((tech, idx) => (
+                                      <span key={idx} style={{ fontSize: '0.7rem', background: 'var(--bg-cream)', border: '1.5px solid var(--text-navy)', padding: '0.15rem 0.45rem', borderRadius: '6px', fontFamily: 'Outfit', fontWeight: 'bold', color: 'var(--text-navy)' }}>
+                                        {tech.trim()}
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Quick Links */}
+                              <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
+                                <a href={sub.github_url} target="_blank" rel="noreferrer" className="btn-small accept" style={{ fontSize: '0.75rem', padding: '0.3rem 0.8rem', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+                                  💻 Code Repo
+                                </a>
+                                {sub.ppt_link && (
+                                  <a href={sub.ppt_link} target="_blank" rel="noreferrer" className="btn-small accept" style={{ fontSize: '0.75rem', padding: '0.3rem 0.8rem', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+                                    📂 Drive Folder
+                                  </a>
+                                )}
+                                {sub.demo_url && (
+                                  <a href={sub.demo_url} target="_blank" rel="noreferrer" className="btn-small accept" style={{ fontSize: '0.75rem', padding: '0.3rem 0.8rem', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.3rem', background: 'var(--yellow-star)' }}>
+                                    🚀 Live Demo
+                                  </a>
+                                )}
+                              </div>
+
+                              {/* Evaluation Scoring Fields */}
+                              <div style={{ background: 'var(--bg-cream)', padding: '1.2rem', borderRadius: '12px', border: '2.5px solid var(--text-navy)' }}>
+                                <h4 style={{ margin: '0 0 1rem 0', fontSize: '0.95rem', color: 'var(--text-navy)', fontFamily: "'Fredoka One', cursive" }}>Evaluation Criteria</h4>
+
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(135px, 1fr))', gap: '1rem', marginBottom: '1.2rem' }}>
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                                    <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--text-navy)' }}>Innovation (Max 15)</span>
+                                    <input type="number" min="0" max="15" value={getVal('innovation_score', 0)} onChange={(e) => handleScoreChange(pId, 'innovation_score', e.target.value)} style={{ width: '100%', padding: '0.4rem', border: '2.5px solid var(--text-navy)', borderRadius: '8px', textAlign: 'center', fontWeight: 'bold', fontSize: '1rem', background: '#fff' }} />
+                                  </div>
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                                    <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--text-navy)' }}>Technical (Max 10)</span>
+                                    <input type="number" min="0" max="10" value={getVal('technical_score', 0)} onChange={(e) => handleScoreChange(pId, 'technical_score', e.target.value)} style={{ width: '100%', padding: '0.4rem', border: '2.5px solid var(--text-navy)', borderRadius: '8px', textAlign: 'center', fontWeight: 'bold', fontSize: '1rem', background: '#fff' }} />
+                                  </div>
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                                    <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--text-navy)' }}>UX (Max 10)</span>
+                                    <input type="number" min="0" max="10" value={getVal('ux_score', 0)} onChange={(e) => handleScoreChange(pId, 'ux_score', e.target.value)} style={{ width: '100%', padding: '0.4rem', border: '2.5px solid var(--text-navy)', borderRadius: '8px', textAlign: 'center', fontWeight: 'bold', fontSize: '1rem', background: '#fff' }} />
+                                  </div>
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                                    <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--text-navy)' }}>Impact (Max 10)</span>
+                                    <input type="number" min="0" max="10" value={getVal('impact_score', 0)} onChange={(e) => handleScoreChange(pId, 'impact_score', e.target.value)} style={{ width: '100%', padding: '0.4rem', border: '2.5px solid var(--text-navy)', borderRadius: '8px', textAlign: 'center', fontWeight: 'bold', fontSize: '1rem', background: '#fff' }} />
+                                  </div>
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                                    <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--text-navy)' }}>Pitch (Max 10)</span>
+                                    <input type="number" min="0" max="10" value={getVal('presentation_score', 0)} onChange={(e) => handleScoreChange(pId, 'presentation_score', e.target.value)} style={{ width: '100%', padding: '0.4rem', border: '2.5px solid var(--text-navy)', borderRadius: '8px', textAlign: 'center', fontWeight: 'bold', fontSize: '1rem', background: '#fff' }} />
+                                  </div>
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                                    <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--text-navy)' }}>Feasible (Max 10)</span>
+                                    <input type="number" min="0" max="10" value={getVal('feasibility_score', 0)} onChange={(e) => handleScoreChange(pId, 'feasibility_score', e.target.value)} style={{ width: '100%', padding: '0.4rem', border: '2.5px solid var(--text-navy)', borderRadius: '8px', textAlign: 'center', fontWeight: 'bold', fontSize: '1rem', background: '#fff' }} />
+                                  </div>
+                                </div>
+
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginBottom: '1.2rem' }}>
+                                  <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--text-navy)' }}>Special Remarks</span>
+                                  <input type="text" placeholder="Add special remarks..." value={getRemarksVal()} onChange={(e) => handleScoreChange(pId, 'remarks', e.target.value)} style={{ width: '100%', padding: '0.6rem 0.8rem', border: '2.5px solid var(--text-navy)', borderRadius: '8px', fontSize: '0.9rem', background: '#fff' }} />
+                                </div>
+
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+                                  <span style={{ fontSize: '1.1rem', fontWeight: '900', color: 'var(--text-navy)', fontFamily: 'Outfit' }}>
+                                    Calculated Total: <span style={{ color: 'var(--pink-primary)' }}>{totalSum}</span> / 65
+                                  </span>
+                                  <button
+                                    onClick={() => handleSaveScore(pId)}
+                                    disabled={savingScoreId === pId}
+                                    className="join-btn"
+                                    style={{
+                                      background: isSaved ? '#48bb78' : 'var(--pink-primary)',
+                                      color: '#fff',
+                                      padding: '0.6rem 2rem',
+                                      borderRadius: '12px',
+                                      border: '2.5px solid var(--text-navy)',
+                                      boxShadow: '3px 3px 0px var(--text-navy)',
+                                      cursor: 'pointer',
+                                      fontWeight: 'bold',
+                                      fontFamily: "'Fredoka One', cursive",
+                                      fontSize: '0.9rem'
+                                    }}
+                                  >
+                                    {savingScoreId === pId ? 'Saving...' : isSaved ? 'Saved ✓' : 'Save Evaluation'}
+                                  </button>
+                                </div>
+                              </div>
+
+                            </div>
+                          </div>
+                        )}
                       </div>
-                    )}
+                    );
+                  })
+                )}
+              </div>
+            </div>
+          ) : user.role === 'admin' && showroomTab === 'judging' ? (
+            <div className="user-table-wrapper" style={{ marginTop: '2rem', background: 'rgba(255, 255, 255, 0.03)', padding: '1.5rem', borderRadius: '24px', border: '4px solid var(--text-navy)', boxShadow: '8px 8px 0px var(--text-navy)', overflowX: 'auto' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem' }}>
+                <h2 className="text-3d" style={{ fontSize: '1.8rem', margin: 0 }}>Judging Overview Sheet</h2>
+                <button
+                  onClick={handleDownloadJudgeScoresCSV}
+                  className="join-btn"
+                  style={{
+                    background: 'var(--yellow-star)',
+                    color: 'var(--text-navy)',
+                    padding: '0.6rem 1.2rem',
+                    borderRadius: '12px',
+                    border: '2.5px solid var(--text-navy)',
+                    boxShadow: '3px 3px 0px var(--text-navy)',
+                    fontFamily: "'Fredoka One', cursive",
+                    fontSize: '0.85rem',
+                    cursor: 'pointer'
+                  }}
+                >
+                  EXPORT JUDGING SPREADSHEET (CSV)
+                </button>
+              </div>
+              <table className="admin-table" style={{ width: '100%', minWidth: '1200px', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ borderBottom: '3px solid var(--text-navy)' }}>
+                    <th style={{ padding: '1rem', textAlign: 'left', fontFamily: "'Fredoka One', cursive", color: 'var(--text-navy)' }}>Judge</th>
+                    <th style={{ padding: '1rem', textAlign: 'left', fontFamily: "'Fredoka One', cursive", color: 'var(--text-navy)' }}>Team & Project</th>
+                    <th style={{ padding: '1rem', width: '80px', textAlign: 'center', fontFamily: "'Fredoka One', cursive", color: 'var(--text-navy)' }}>Innovation<br /><span style={{ fontSize: '0.75rem', fontWeight: 'normal' }}>(15)</span></th>
+                    <th style={{ padding: '1rem', width: '80px', textAlign: 'center', fontFamily: "'Fredoka One', cursive", color: 'var(--text-navy)' }}>Technical<br /><span style={{ fontSize: '0.75rem', fontWeight: 'normal' }}>(10)</span></th>
+                    <th style={{ padding: '1rem', width: '80px', textAlign: 'center', fontFamily: "'Fredoka One', cursive", color: 'var(--text-navy)' }}>UX<br /><span style={{ fontSize: '0.75rem', fontWeight: 'normal' }}>(10)</span></th>
+                    <th style={{ padding: '1rem', width: '80px', textAlign: 'center', fontFamily: "'Fredoka One', cursive", color: 'var(--text-navy)' }}>Impact<br /><span style={{ fontSize: '0.75rem', fontWeight: 'normal' }}>(10)</span></th>
+                    <th style={{ padding: '1rem', width: '80px', textAlign: 'center', fontFamily: "'Fredoka One', cursive", color: 'var(--text-navy)' }}>Pitch<br /><span style={{ fontSize: '0.75rem', fontWeight: 'normal' }}>(10)</span></th>
+                    <th style={{ padding: '1rem', width: '80px', textAlign: 'center', fontFamily: "'Fredoka One', cursive", color: 'var(--text-navy)' }}>Feasible<br /><span style={{ fontSize: '0.75rem', fontWeight: 'normal' }}>(10)</span></th>
+                    <th style={{ padding: '1rem', width: '80px', textAlign: 'center', fontFamily: "'Fredoka One', cursive", color: 'var(--text-navy)' }}>Total<br /><span style={{ fontSize: '0.75rem', fontWeight: 'normal' }}>(65)</span></th>
+                    <th style={{ padding: '1rem', textAlign: 'left', fontFamily: "'Fredoka One', cursive", color: 'var(--text-navy)' }}>Special Remarks</th>
+                    <th style={{ padding: '1rem', width: '100px', textAlign: 'center', fontFamily: "'Fredoka One', cursive", color: 'var(--text-navy)' }}>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredScoresForAdmin.length === 0 ? (
+                    <tr>
+                      <td colSpan="11" style={{ textAlign: 'center', padding: '3rem', fontFamily: 'Outfit', color: 'var(--text-muted)' }}>
+                        {allJudgeScores.length === 0 ? 'No scores recorded by any judges yet.' : 'No matching scoring records found.'}
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredScoresForAdmin.map((score) => {
+                      const pId = score.project_id;
+                      const rowKey = `${score.id}-${pId}`;
+
+                      const getAdminVal = (field, def = 0) => {
+                        if (tempScores[rowKey] && tempScores[rowKey][field] !== undefined) return tempScores[rowKey][field];
+                        if (score[field] !== undefined) return score[field];
+                        return def;
+                      };
+
+                      const getAdminRemarksVal = () => {
+                        if (tempScores[rowKey] && tempScores[rowKey].remarks !== undefined) return tempScores[rowKey].remarks;
+                        return score.remarks || '';
+                      };
+
+                      const currentInnovation = parseInt(getAdminVal('innovation_score', 0));
+                      const currentTechnical = parseInt(getAdminVal('technical_score', 0));
+                      const currentUx = parseInt(getAdminVal('ux_score', 0));
+                      const currentImpact = parseInt(getAdminVal('impact_score', 0));
+                      const currentPresentation = parseInt(getAdminVal('presentation_score', 0));
+                      const currentFeasibility = parseInt(getAdminVal('feasibility_score', 0));
+                      const totalSum = currentInnovation + currentTechnical + currentUx + currentImpact + currentPresentation + currentFeasibility;
+
+                      const isSaved = !tempScores[rowKey] || Object.keys(tempScores[rowKey]).length === 0;
+
+                      const handleAdminScoreChange = (field, value) => {
+                        setTempScores(prev => {
+                          const current = prev[rowKey] || score;
+                          return {
+                            ...prev,
+                            [rowKey]: { ...current, [field]: value }
+                          };
+                        });
+                      };
+
+                      const handleAdminSave = async () => {
+                        if (!session?.user?.id) {
+                          alert("You must be logged in to save scores.");
+                          return;
+                        }
+
+                        const editedScore = tempScores[rowKey] || score;
+                        const innovationVal = parseInt(editedScore.innovation_score ?? 0);
+                        const technicalVal = parseInt(editedScore.technical_score ?? 0);
+                        const uxVal = parseInt(editedScore.ux_score ?? 0);
+                        const impactVal = parseInt(editedScore.impact_score ?? 0);
+                        const presentationVal = parseInt(editedScore.presentation_score ?? 0);
+                        const feasibilityVal = parseInt(editedScore.feasibility_score ?? 0);
+                        const remarksVal = (editedScore.remarks ?? '').toString().trim();
+                        const totalMarkVal = innovationVal + technicalVal + uxVal + impactVal + presentationVal + feasibilityVal;
+
+                        if (innovationVal < 0 || innovationVal > 15) {
+                          alert("Innovation score must be between 0 and 15.");
+                          return;
+                        }
+                        if ([technicalVal, uxVal, impactVal, presentationVal, feasibilityVal].some(val => val < 0 || val > 10)) {
+                          alert("Criteria scores must be between 0 and 10.");
+                          return;
+                        }
+
+                        setSavingScoreId(rowKey);
+
+                        try {
+                          const upsertData = {
+                            id: score.id,
+                            project_id: pId,
+                            judge_id: score.judge_id,
+                            judge_name: score.judge_name,
+                            team_name: score.team_name,
+                            team_id: score.team_id,
+                            submitted_time: score.submitted_time,
+                            ai_percentage: score.ai_percentage,
+                            innovation_score: innovationVal,
+                            technical_score: technicalVal,
+                            ux_score: uxVal,
+                            impact_score: impactVal,
+                            presentation_score: presentationVal,
+                            feasibility_score: feasibilityVal,
+                            remarks: remarksVal,
+                            total_mark: totalMarkVal,
+                            updated_at: new Date().toISOString()
+                          };
+
+                          const { data: savedRecord, error: upsertError } = await supabase
+                            .from('judge_scores')
+                            .upsert([upsertData])
+                            .select()
+                            .single();
+
+                          if (upsertError) throw upsertError;
+
+                          setAllJudgeScores(prev => {
+                            const filtered = prev.filter(s => s.id !== savedRecord.id);
+                            return [...filtered, savedRecord].sort((a, b) => a.team_name.localeCompare(b.team_name));
+                          });
+
+                          setTempScores(prev => {
+                            const copy = { ...prev };
+                            delete copy[rowKey];
+                            return copy;
+                          });
+
+                          const googleScriptUrl = import.meta.env.VITE_GOOGLE_SCRIPT_URL || 'https://script.google.com/macros/s/AKfycbxegpLYC3j5i1UIGffgpRXdHOZ6pgDVDQSc3qyY-_xNs5z0MopMkH_ezspB5PTpF2U/exec';
+                          if (googleScriptUrl) {
+                            fetch(googleScriptUrl, {
+                              method: 'POST',
+                              mode: 'no-cors',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify(savedRecord)
+                            }).catch(e => console.error('Failed to sync to Google Sheets:', e));
+                          }
+
+                          alert("Score updated and synced successfully!");
+                        } catch (err) {
+                          alert("Failed to save score: " + err.message);
+                        } finally {
+                          setSavingScoreId(null);
+                        }
+                      };
+
+                      return (
+                        <tr key={score.id} style={{ borderBottom: '2px solid rgba(0, 31, 63, 0.1)' }}>
+                          <td style={{ padding: '1.2rem 1rem', fontWeight: 'bold', color: 'var(--text-navy)' }}>
+                            {score.judge_name}
+                          </td>
+                          <td style={{ padding: '1.2rem 1rem' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column' }}>
+                              <strong style={{ fontSize: '1.1rem', color: 'var(--text-navy)' }}>{score.team_name}</strong>
+                              <span style={{ fontSize: '0.85rem', color: 'var(--blue-shadow)', fontWeight: 'bold' }}>🤖 {score.ai_percentage}% AI</span>
+                            </div>
+                          </td>
+                          <td style={{ padding: '1rem', textAlign: 'center' }}>
+                            <input type="number" min="0" max="15" value={getAdminVal('innovation_score', 0)} onChange={(e) => handleAdminScoreChange('innovation_score', e.target.value)} style={{ width: '55px', padding: '0.4rem', border: '2.5px solid var(--text-navy)', borderRadius: '8px', textAlign: 'center', fontWeight: 'bold' }} />
+                          </td>
+                          <td style={{ padding: '1rem', textAlign: 'center' }}>
+                            <input type="number" min="0" max="10" value={getAdminVal('technical_score', 0)} onChange={(e) => handleAdminScoreChange('technical_score', e.target.value)} style={{ width: '55px', padding: '0.4rem', border: '2.5px solid var(--text-navy)', borderRadius: '8px', textAlign: 'center', fontWeight: 'bold' }} />
+                          </td>
+                          <td style={{ padding: '1rem', textAlign: 'center' }}>
+                            <input type="number" min="0" max="10" value={getAdminVal('ux_score', 0)} onChange={(e) => handleAdminScoreChange('ux_score', e.target.value)} style={{ width: '55px', padding: '0.4rem', border: '2.5px solid var(--text-navy)', borderRadius: '8px', textAlign: 'center', fontWeight: 'bold' }} />
+                          </td>
+                          <td style={{ padding: '1rem', textAlign: 'center' }}>
+                            <input type="number" min="0" max="10" value={getAdminVal('impact_score', 0)} onChange={(e) => handleAdminScoreChange('impact_score', e.target.value)} style={{ width: '55px', padding: '0.4rem', border: '2.5px solid var(--text-navy)', borderRadius: '8px', textAlign: 'center', fontWeight: 'bold' }} />
+                          </td>
+                          <td style={{ padding: '1rem', textAlign: 'center' }}>
+                            <input type="number" min="0" max="10" value={getAdminVal('presentation_score', 0)} onChange={(e) => handleAdminScoreChange('presentation_score', e.target.value)} style={{ width: '55px', padding: '0.4rem', border: '2.5px solid var(--text-navy)', borderRadius: '8px', textAlign: 'center', fontWeight: 'bold' }} />
+                          </td>
+                          <td style={{ padding: '1rem', textAlign: 'center' }}>
+                            <input type="number" min="0" max="10" value={getAdminVal('feasibility_score', 0)} onChange={(e) => handleAdminScoreChange('feasibility_score', e.target.value)} style={{ width: '55px', padding: '0.4rem', border: '2.5px solid var(--text-navy)', borderRadius: '8px', textAlign: 'center', fontWeight: 'bold' }} />
+                          </td>
+                          <td style={{ padding: '1rem', textAlign: 'center', fontWeight: '900', fontSize: '1.1rem', color: 'var(--text-navy)' }}>
+                            {totalSum}
+                          </td>
+                          <td style={{ padding: '1rem' }}>
+                            <input type="text" placeholder="Remarks..." value={getAdminRemarksVal()} onChange={(e) => handleAdminScoreChange('remarks', e.target.value)} style={{ width: '100%', minWidth: '150px', padding: '0.4rem 0.6rem', border: '2.5px solid var(--text-navy)', borderRadius: '8px' }} />
+                          </td>
+                          <td style={{ padding: '1rem', textAlign: 'center' }}>
+                            <button
+                              onClick={handleAdminSave}
+                              disabled={savingScoreId === rowKey}
+                              className="btn-small accept"
+                              style={{
+                                background: isSaved ? '#48bb78' : 'var(--pink-primary)',
+                                color: '#fff',
+                                width: '70px',
+                                textTransform: 'uppercase',
+                                border: '2px solid var(--text-navy)',
+                                boxShadow: '2px 2px 0px var(--text-navy)',
+                                cursor: 'pointer',
+                                fontWeight: 'bold',
+                                fontSize: '0.75rem',
+                                padding: '0.4rem'
+                              }}
+                            >
+                              {savingScoreId === rowKey ? '...' : isSaved ? 'Saved ✓' : 'Save'}
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <>
+              {(() => {
+                const filteredSubmissions = projectSubmissions.filter(sub => {
+                  if (!showroomSearchQuery.trim()) return true;
+                  const query = showroomSearchQuery.toLowerCase().trim();
+                  const teamName = (sub.team_name || '').toLowerCase();
+                  const leaderName = getSubmissionTeamLeader(sub.team_name).toLowerCase();
+                  const projectName = (sub.project_name || '').toLowerCase();
+                  return teamName.includes(query) || leaderName.includes(query) || projectName.includes(query);
+                });
+
+                if (projectSubmissions.length === 0) {
+                  return (
+                    <div style={{ textAlign: 'center', padding: '4rem', background: 'var(--bg-cream)', border: '4px solid var(--text-navy)', borderRadius: '24px', boxShadow: '8px 8px 0px var(--text-navy)' }}>
+                      <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>🚀</div>
+                      <h3 style={{ fontFamily: 'Fredoka One', color: 'var(--text-navy)', fontSize: '1.5rem', marginBottom: '0.5rem' }}>No Submissions Yet</h3>
+                      <p style={{ fontFamily: 'Outfit', color: 'var(--text-muted)' }}>Check back once hacking finishes and teams submit their projects!</p>
+                    </div>
+                  );
+                }
+
+                if (filteredSubmissions.length === 0) {
+                  return (
+                    <div style={{ textAlign: 'center', padding: '4rem', background: 'var(--bg-cream)', border: '4px solid var(--text-navy)', borderRadius: '24px', boxShadow: '8px 8px 0px var(--text-navy)' }}>
+                      <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>🔍</div>
+                      <h3 style={{ fontFamily: 'Fredoka One', color: 'var(--text-navy)', fontSize: '1.5rem', marginBottom: '0.5rem' }}>No Matching Projects Found</h3>
+                      <p style={{ fontFamily: 'Outfit', color: 'var(--text-muted)' }}>Try refining your search query or check spelling.</p>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="showroom-grid">
+                    {filteredSubmissions.map((submission) => {
+                      const formattedTime = submission.created_at
+                        ? new Date(submission.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }) + ' ' + new Date(submission.created_at).toLocaleDateString([], { month: 'short', day: 'numeric' })
+                        : 'N/A';
+                      const leaderName = getSubmissionTeamLeader(submission.team_name);
+
+                      return (
+                        <div key={submission.id} className="blog-post-card" style={{ padding: '2rem', display: 'flex', flexDirection: 'column', height: '100%', gap: '1rem', background: '#fff', textAlign: 'left' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span className="sidebar-tag" style={{ background: 'var(--pink-primary)', color: '#fff', border: 'none', fontWeight: 'bold' }}>
+                              {submission.team_name}
+                            </span>
+                            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 'bold' }}>
+                              🕒 {formattedTime}
+                            </span>
+                          </div>
+
+                          <h3 style={{ fontFamily: 'Fredoka One', color: 'var(--text-navy)', fontSize: '1.4rem', margin: '0.5rem 0 0.2rem 0' }}>
+                            {submission.project_name}
+                          </h3>
+
+                          {leaderName && (
+                            <p style={{ fontFamily: 'Outfit', color: 'var(--text-navy)', fontSize: '0.88rem', margin: '0 0 0.2rem 0', textAlign: 'left' }}>
+                              <strong>👑 Leader:</strong> {leaderName}
+                            </p>
+                          )}
+
+                          {submission.tech_stack && (
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+                              {submission.tech_stack.split(',').map((tech, i) => (
+                                <span key={i} className="sidebar-tag" style={{ fontSize: '0.75rem', background: '#fff', border: '1.5px solid var(--text-navy)' }}>
+                                  {tech.trim()}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+
+                          <p style={{ fontFamily: 'Outfit', color: 'var(--text-navy)', fontSize: '0.92rem', lineHeight: '1.5', flexGrow: 1, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebKitLineClamp: 4, WebKitBoxOrient: 'vertical', textAlign: 'left', margin: '0.5rem 0' }}>
+                            {submission.description}
+                          </p>
+
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem', marginTop: 'auto', paddingTop: '1rem', borderTop: '2px dashed rgba(0, 31, 63, 0.15)' }}>
+                            {submission.github_url && (
+                              <a
+                                href={submission.github_url.startsWith('http') ? submission.github_url : `https://${submission.github_url}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="social-connect-item-view"
+                                style={{ margin: 0, textDecoration: 'none', background: '#fff', border: '2px solid var(--text-navy)', padding: '0.7rem 1rem', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '0.5rem', transition: 'transform 0.1s' }}
+                              >
+                                <img src="icons/github.svg" alt="GitHub" style={{ width: '20px', height: '20px' }} />
+                                <span style={{ fontFamily: 'Fredoka One', color: 'var(--text-navy)', fontSize: '0.9rem' }}>Github Repository</span>
+                              </a>
+                            )}
+
+                            {submission.demo_url && (
+                              <a
+                                href={submission.demo_url.startsWith('http') ? submission.demo_url : `https://${submission.demo_url}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="social-connect-item-view"
+                                style={{ margin: 0, textDecoration: 'none', background: 'var(--pink-primary)', color: '#fff', border: '2px solid var(--text-navy)', padding: '0.7rem 1rem', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '0.5rem', transition: 'transform 0.1s', boxShadow: '3px 3px 0px var(--text-navy)' }}
+                              >
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h6" />
+                                  <polyline points="15 3 21 3 21 9" />
+                                  <line x1="10" y1="14" x2="21" y2="3" />
+                                </svg>
+                                <span style={{ fontFamily: 'Fredoka One', fontSize: '0.9rem' }}>Live Project Website</span>
+                              </a>
+                            )}
+
+                            {submission.ppt_link && (
+                              <>
+                                <a
+                                  href={submission.ppt_link.startsWith('http') ? submission.ppt_link : `https://${submission.ppt_link}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="social-connect-item-view"
+                                  style={{ margin: 0, textDecoration: 'none', background: '#fff', border: '2px solid var(--text-navy)', padding: '0.7rem 1rem', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '0.5rem', transition: 'transform 0.1s' }}
+                                >
+                                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--text-navy)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                    <polyline points="7 10 12 15 17 10" />
+                                    <line x1="12" y1="15" x2="12" y2="3" />
+                                  </svg>
+                                  <span style={{ fontFamily: 'Fredoka One', color: 'var(--text-navy)', fontSize: '0.9rem' }}>Open OneDrive Folder</span>
+                                </a>
+
+                                <button
+                                  onClick={() => setExpandedProject(expandedProject === submission.id ? null : submission.id)}
+                                  className="social-connect-item-view"
+                                  style={{ margin: 0, border: '2px solid var(--text-navy)', padding: '0.7rem 1rem', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', background: expandedProject === submission.id ? 'var(--pink-primary)' : 'var(--yellow-star)', color: expandedProject === submission.id ? '#fff' : 'var(--text-navy)', boxShadow: '3px 3px 0px var(--text-navy)', transition: 'all 0.1s' }}
+                                >
+                                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                    {expandedProject === submission.id ? (
+                                      <>
+                                        <line x1="18" y1="6" x2="6" y2="18" />
+                                        <line x1="6" y1="6" x2="18" y2="18" />
+                                      </>
+                                    ) : (
+                                      <>
+                                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                                        <circle cx="12" cy="12" r="3" />
+                                      </>
+                                    )}
+                                  </svg>
+                                  <span style={{ fontFamily: 'Fredoka One', fontSize: '0.9rem' }}>
+                                    {expandedProject === submission.id ? 'Hide Live Folder' : 'Live Folder Preview'}
+                                  </span>
+                                </button>
+                              </>
+                            )}
+                          </div>
+
+                          {expandedProject === submission.id && submission.ppt_link && (
+                            <div style={{ marginTop: '1.2rem', width: '100%', height: '420px', border: '3.5px solid var(--text-navy)', borderRadius: '18px', overflow: 'hidden', background: '#fff', position: 'relative', boxShadow: 'inset 0 4px 10px rgba(0,0,0,0.06)' }}>
+                              <iframe
+                                src={getEmbedLink(submission.ppt_link)}
+                                style={{ width: '100%', height: '100%', border: 'none' }}
+                                title={`Project Preview - ${submission.project_name}`}
+                                allow="autoplay; encrypted-media"
+                              ></iframe>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 );
-              })}
-            </div>
-          );
-        })()}
-      </div>
-    ) : null}
+              })()}
+            </>
+          )}
+        </div>
+      ) : null}
 
       <div className={`scroll-top-btn ${showScrollTop && activeView !== 'blog' ? 'visible' : ''}`} onClick={scrollToTop}>
         <img src="icons/rocket.svg" alt="top" />
       </div>
+      {showForgotPasswordPopup && (
+        <div className="modal-overlay" onClick={() => setShowForgotPasswordPopup(false)}>
+          <div className="modal-content about-modal" onClick={e => e.stopPropagation()}>
+            <button className="modal-close" onClick={() => setShowForgotPasswordPopup(false)}>×</button>
+            <div className="modal-inner">
+              <div className="modal-visual" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '2rem' }}>
+                <img src="icons/warning.svg" alt="Support" style={{ maxWidth: '60%', height: 'auto' }} />
+              </div>
+              <div className="modal-text">
+                <h2 className="text-3d">Recover Account</h2>
+                <p style={{ fontSize: '1.1rem', lineHeight: '1.6', color: 'var(--text-navy)', marginBottom: '1rem' }}>
+                  Please contact the organizers to reset your password.
+                </p>
+                <p style={{ fontSize: '1rem', lineHeight: '1.6', color: 'var(--text-navy)', marginBottom: '1.5rem' }}>
+                  Kindly provide your <strong>registered email address</strong> and your <strong>Instagram handle</strong> for verification when reaching out.
+                </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem', marginBottom: '1.5rem' }}>
+                  <a href="mailto:mindempowered2020@gmail.com" className="social-connect-item-view" style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', textDecoration: 'none', padding: '0.8rem 1.2rem', background: 'var(--bg-cream)', border: '2.5px solid var(--text-navy)', borderRadius: '15px', color: 'var(--text-navy)', fontWeight: 'bold', boxShadow: '3px 3px 0px var(--text-navy)' }}>
+                    <span>📧 Email: mindempowered2020@gmail.com</span>
+                  </a>
+                  <a href="https://www.instagram.com/mind.empowered?igsh=bGNmYXI1czlrcDhi" target="_blank" rel="noopener noreferrer" className="social-connect-item-view" style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', textDecoration: 'none', padding: '0.8rem 1.2rem', background: 'var(--bg-cream)', border: '2.5px solid var(--text-navy)', borderRadius: '15px', color: 'var(--text-navy)', fontWeight: 'bold', boxShadow: '3px 3px 0px var(--text-navy)' }}>
+                    <span>📸 Instagram: @mind.empowered</span>
+                  </a>
+                </div>
+                <div className="modal-footer-brand">
+                  Starlet Organizer Support
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       {showAboutPopup && (
         <div className="modal-overlay" onClick={() => setShowAboutPopup(false)}>
           <div className="modal-content about-modal" onClick={e => e.stopPropagation()}>
@@ -9727,16 +10603,16 @@ function App() {
         <div className="modal-overlay" onClick={() => setIsProjectModalOpen(false)}>
           <div className="modal-content about-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '750px', background: 'var(--bg-cream)', border: '4px solid var(--text-navy)', padding: '2.5rem', borderRadius: '24px', boxShadow: '10px 10px 0px var(--text-navy)', overflowY: 'auto', maxHeight: '90vh', position: 'relative' }}>
             <button className="modal-close" onClick={() => setIsProjectModalOpen(false)} style={{ color: 'var(--text-navy)', fontSize: '2rem', right: '1.5rem', top: '1rem', background: 'none', border: 'none', cursor: 'pointer' }}>×</button>
-            
+
             <div style={{ width: '100%' }}>
               <h2 className="text-3d" style={{ fontSize: '2.2rem', marginBottom: '1.5rem', textAlign: 'center' }}>Project Submission</h2>
-              
+
               {mySubmission ? (
                 <div className="submission-success" style={{ textAlign: 'center' }}>
                   <div style={{ marginBottom: '1rem', fontSize: '3rem' }}>🚀</div>
                   <h3 style={{ fontFamily: 'Fredoka One', color: 'var(--text-navy)', fontSize: '1.6rem', marginBottom: '0.5rem' }}>Project Submitted!</h3>
                   <p style={{ fontFamily: 'Outfit', color: 'var(--text-navy)', fontSize: '1.05rem', margin: '0.5rem 0' }}>Your team's project <strong>"{mySubmission.project_name}"</strong> has been received.</p>
-                  
+
                   {submitterName && (
                     <p style={{ fontSize: '0.95rem', color: 'var(--text-navy)', fontWeight: 'bold', marginTop: '0.5rem' }}>
                       Submitted by teammate: <span style={{ color: 'var(--pink-primary)' }}>{submitterName}</span>
@@ -10653,9 +11529,9 @@ function App() {
             <p style={{ fontFamily: 'Outfit', color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '1.5rem', lineHeight: '1.4' }}>
               Scan an attendee's QR Pass to verify their morning presence and update their hackathon status.
             </p>
-            
+
             <div id="checkin-qr-reader" style={{ width: '100%', borderRadius: '15px', overflow: 'hidden', border: '3.5px solid var(--text-navy)', background: '#fff' }}></div>
-            
+
             {scanResult && (
               <div style={{ marginTop: '1.5rem', padding: '1rem', background: scanResult.success ? 'rgba(37, 211, 102, 0.1)' : 'rgba(229, 62, 98, 0.1)', border: `2.5px solid ${scanResult.success ? '#25D366' : '#e53e3e'}`, borderRadius: '14px', textAlign: 'left' }}>
                 <strong style={{ color: 'var(--text-navy)', fontSize: '0.95rem', display: 'block' }}>
@@ -10687,6 +11563,135 @@ function App() {
             >
               CLOSE SCANNER
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* FEEDBACK POPUP FOR CERTIFICATE CLAIMING */}
+      {showFeedbackModal && (
+        <div className="modal-overlay" onClick={() => setShowFeedbackModal(false)} style={{ zIndex: 3000 }}>
+          <div
+            className="mentor-modal"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              maxWidth: '650px',
+              padding: '2.5rem',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '1.5rem',
+              position: 'relative'
+            }}
+          >
+            <button
+              className="modal-close"
+              onClick={() => setShowFeedbackModal(false)}
+              style={{
+                top: '20px',
+                right: '25px',
+                position: 'absolute',
+                background: 'none',
+                border: 'none',
+                fontSize: '2rem',
+                cursor: 'pointer',
+                color: 'var(--text-navy)',
+                fontWeight: 'bold'
+              }}
+            >
+              ×
+            </button>
+
+            <div style={{ textAlign: 'center', marginTop: '0.5rem' }}>
+              <div style={{ fontSize: '3rem', marginBottom: '0.5rem' }}>✦</div>
+              <h2 className="text-3d" style={{ fontSize: '2rem', marginBottom: '0.75rem', color: 'var(--text-navy)', fontFamily: 'Fredoka One' }}>
+                Share Your Feedback
+              </h2>
+              <p style={{ fontFamily: 'Outfit', color: 'var(--text-navy)', opacity: 0.85, fontSize: '0.95rem', lineHeight: '1.5', margin: 0 }}>
+                We'd love to hear your thoughts about Starlet 5.0! Please write a quick feedback of at least <strong>100 words</strong> to unlock your certificate downloading dashboard.
+              </p>
+            </div>
+
+            <div style={{ position: 'relative', width: '100%' }}>
+              <textarea
+                value={feedbackText}
+                onChange={(e) => setFeedbackText(e.target.value)}
+                placeholder="What did you think of the venue, mentoring, organizers, food, workshops, and project building? What was your favorite part of Starlet 5.0?"
+                style={{
+                  width: '100%',
+                  height: '220px',
+                  padding: '1.2rem',
+                  borderRadius: '20px',
+                  border: '3.5px solid var(--text-navy)',
+                  backgroundColor: '#fffdf9',
+                  color: 'var(--text-navy)',
+                  fontFamily: 'Outfit, sans-serif',
+                  fontSize: '0.95rem',
+                  resize: 'none',
+                  boxShadow: 'inset 4px 4px 0px rgba(0, 31, 63, 0.08)',
+                  outline: 'none',
+                  lineHeight: '1.5',
+                  transition: 'all 0.2s'
+                }}
+              />
+              
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginTop: '0.6rem',
+                fontSize: '0.9rem',
+                fontFamily: 'Outfit',
+                fontWeight: 'bold'
+              }}>
+                <span style={{ color: 'var(--text-navy)' }}>
+                  Word Count:{' '}
+                  <span style={{ 
+                    color: getWordCount(feedbackText) >= 100 ? '#10b981' : '#ef4444',
+                    fontSize: '1.05rem'
+                  }}>
+                    {getWordCount(feedbackText)}
+                  </span>{' '}
+                  / 100
+                </span>
+                
+                {getWordCount(feedbackText) >= 100 ? (
+                  <span style={{ color: '#10b981', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <span style={{ fontSize: '1.1rem' }}>✓</span> Minimum word count reached!
+                  </span>
+                ) : (
+                  <span style={{ color: '#ef4444', fontWeight: '500', opacity: 0.9 }}>
+                    Need {100 - getWordCount(feedbackText)} more words
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem', width: '100%' }}>
+              <button
+                className="btn-secondary"
+                onClick={() => setShowFeedbackModal(false)}
+                style={{ flex: 1, padding: '1rem 1.5rem', fontFamily: 'Fredoka One' }}
+                disabled={isSubmittingFeedback}
+              >
+                CANCEL
+              </button>
+              <button
+                className="join-btn"
+                onClick={handleSubmitFeedback}
+                style={{
+                  flex: 2,
+                  padding: '1rem 1.5rem',
+                  opacity: (getWordCount(feedbackText) >= 100 && !isSubmittingFeedback) ? 1 : 0.5,
+                  cursor: (getWordCount(feedbackText) >= 100 && !isSubmittingFeedback) ? 'pointer' : 'not-allowed',
+                  background: 'linear-gradient(135deg, #ffd700, #ff8c00)',
+                  color: '#001f3f',
+                  border: '3.5px solid var(--text-navy)',
+                  fontFamily: 'Fredoka One'
+                }}
+                disabled={getWordCount(feedbackText) < 100 || isSubmittingFeedback}
+              >
+                {isSubmittingFeedback ? 'SUBMITTING...' : 'SUBMIT & UNLOCK CERTIFICATE ✦'}
+              </button>
+            </div>
           </div>
         </div>
       )}
