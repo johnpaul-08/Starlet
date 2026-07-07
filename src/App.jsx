@@ -4574,7 +4574,7 @@ function App() {
     setIsSubmittingFeedback(true);
     try {
       const googleScriptUrl = import.meta.env.VITE_GOOGLE_SCRIPT_URL || 'https://script.google.com/macros/s/AKfycbxegpLYC3j5i1UIGffgpRXdHOZ6pgDVDQSc3qyY-_xNs5z0MopMkH_ezspB5PTpF2U/exec';
-      
+
       const payload = {
         action: 'feedback',
         name: user.name || 'Anonymous',
@@ -4597,7 +4597,7 @@ function App() {
       localStorage.setItem(`feedback_submitted_${user.id}`, 'true');
       setShowFeedbackModal(false);
       setFeedbackText('');
-      
+
       setActiveView('certificate');
       alert('Thank you for your feedback! Your certificate has been unlocked.');
     } catch (error) {
@@ -7720,7 +7720,7 @@ function App() {
                                   <td>
                                     {sub ? (
                                       <span className={`role-badge ${sub.git_audit_status === 'passed' ? 'accept' :
-                                          sub.git_audit_status === 'scanning' ? 'pending' : 'decline'
+                                        sub.git_audit_status === 'scanning' ? 'pending' : 'decline'
                                         }`} style={{ background: sub.git_audit_status === 'scanning' ? '#2b6cb0' : undefined }}>
                                         {sub.git_audit_status === 'scanning' ? '⏳ SCANNING' :
                                           sub.git_audit_status === 'passed' ? '✅ PASSED' :
@@ -9692,7 +9692,7 @@ function App() {
       ) : activeView === 'showroom' ? (
         <div className="showroom-container">
           <div className="section-header" style={{ marginBottom: '1.5rem', textAlign: 'center' }}>
-            {user.role === 'judge' ? (
+            {/* {user.role === 'judge' ? (
               <p className="subtitle-large" style={{ color: 'var(--text-muted)', marginBottom: '1rem' }}>
                 Welcome, Judge! Score each team's project below. Updates sync in real-time to the database and Google Sheets.
               </p>
@@ -9702,93 +9702,89 @@ function App() {
               <p className="subtitle-large" style={{ color: 'var(--text-muted)', marginBottom: '1rem' }}>
                 Explore the amazing innovations created by all teams at Starlet 5.0!
               </p>
-            )}
+            )} */}
 
-            {/* Toggle Switch (Projects vs Judging) */}
-            {(user.role === 'admin' || user.role === 'judge') && (
-              <div className="showroom-toggle-row">
+            {/* Search, Toggle, Download — all on one row */}
+            <div className="showroom-header-top">
+              {/* Left side: search bar wrapped so flex:1 doesn't override its own width */}
+              <div className="showroom-header-side">
+                <div
+                  className={`showroom-search-container ${isSearchExpanded ? 'expanded' : 'collapsed'}`}
+                  onClick={() => {
+                    if (!isSearchExpanded) {
+                      setIsSearchExpanded(true);
+                      setTimeout(() => searchInputRef.current?.focus(), 100);
+                    }
+                  }}
+                >
+                  <span className="search-toggle-btn" style={{ cursor: 'pointer' }}>
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--text-navy)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="11" cy="11" r="8"></circle>
+                      <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                  </span>
+                  <input
+                    ref={searchInputRef}
+                    type="text"
+                    placeholder="Search by Team, Project, or Leader..."
+                    value={showroomSearchQuery}
+                    onChange={(e) => setShowroomSearchQuery(e.target.value)}
+                    className="showroom-search-input"
+                    onBlur={() => {
+                      if (showroomSearchQuery.trim() === '') {
+                        setIsSearchExpanded(false);
+                      }
+                    }}
+                  />
+                  {showroomSearchQuery && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowroomSearchQuery('');
+                        searchInputRef.current?.focus();
+                      }}
+                      className="search-clear-btn"
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Center: Toggle Switch (Projects vs Judging) */}
+              {(user.role === 'admin' || user.role === 'judge') ? (
                 <div className="showroom-toggle-container">
                   <button
-                    onClick={() => {
-                      setShowroomTab('projects');
-                      playClickSound();
-                    }}
+                    onClick={() => { setShowroomTab('projects'); playClickSound(); }}
                     className={`showroom-toggle-btn ${showroomTab === 'projects' ? 'active' : ''}`}
                   >
                     Projects View
                   </button>
                   <button
-                    onClick={() => {
-                      setShowroomTab('judging');
-                      playClickSound();
-                    }}
+                    onClick={() => { setShowroomTab('judging'); playClickSound(); }}
                     className={`showroom-toggle-btn ${showroomTab === 'judging' ? 'active' : ''}`}
                   >
                     {user.role === 'admin' ? 'Judging Overview' : 'Judging Sheet'}
                   </button>
                 </div>
-              </div>
-            )}
+              ) : <div />}
 
-            {/* Search and Download row */}
-            <div className="showroom-header-top">
-              {/* Collapsing search bar */}
-              <div 
-                className={`showroom-search-container ${isSearchExpanded ? 'expanded' : 'collapsed'}`}
-                onClick={() => {
-                  if (!isSearchExpanded) {
-                    setIsSearchExpanded(true);
-                    setTimeout(() => searchInputRef.current?.focus(), 100);
-                  }
-                }}
-              >
-                <span className="search-toggle-btn" style={{ cursor: 'pointer' }}>
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--text-navy)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="11" cy="11" r="8"></circle>
-                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                  </svg>
-                </span>
-                <input
-                  ref={searchInputRef}
-                  type="text"
-                  placeholder="Search by Team, Project, or Leader..."
-                  value={showroomSearchQuery}
-                  onChange={(e) => setShowroomSearchQuery(e.target.value)}
-                  className="showroom-search-input"
-                  onBlur={() => {
-                    if (showroomSearchQuery.trim() === '') {
-                      setIsSearchExpanded(false);
-                    }
-                  }}
-                />
-                {showroomSearchQuery && (
+              {/* Right side: Download button wrapped so flex:1 doesn't distort it */}
+              <div className="showroom-header-side showroom-header-side--right">
+                {(user.role === 'admin' && showroomTab === 'judging') ? (
                   <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setShowroomSearchQuery('');
-                      searchInputRef.current?.focus();
-                    }}
-                    className="search-clear-btn"
+                    onClick={handleDownloadJudgeScoresCSV}
+                    title="Export Judging Spreadsheet (CSV)"
+                    className="showroom-download-btn"
                   >
-                    ×
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--text-navy)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                      <polyline points="7 10 12 15 17 10"></polyline>
+                      <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
                   </button>
-                )}
+                ) : <div style={{ width: '52px' }} />}
               </div>
-
-              {/* Download Icon (Admin only or both) */}
-              {(user.role === 'admin' && showroomTab === 'judging') ? (
-                <button
-                  onClick={handleDownloadJudgeScoresCSV}
-                  title="Export Judging Spreadsheet (CSV)"
-                  className="showroom-download-btn"
-                >
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--text-navy)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                    <polyline points="7 10 12 15 17 10"></polyline>
-                    <line x1="12" y1="15" x2="12" y2="3"></line>
-                  </svg>
-                </button>
-              ) : <div style={{ width: '52px' }} />}
             </div>
           </div>
 
@@ -9840,13 +9836,13 @@ function App() {
                 const q = showroomSearchQuery.toLowerCase().trim();
                 const teamName = (row.team_name || '').toLowerCase();
                 const judgeName = (row.judge_name || '').toLowerCase();
-                
+
                 const sub = projectSubmissions.find(s => s.id === row.project_id);
                 const projectName = sub ? (sub.project_name || '').toLowerCase() : '';
-                
+
                 const teamLeader = allUsers.find(u => u.team_name === row.team_name && u.is_team_leader);
                 const leaderName = teamLeader ? (teamLeader.full_name || '').toLowerCase() : '';
-                
+
                 return teamName.includes(q) || judgeName.includes(q) || projectName.includes(q) || leaderName.includes(q);
               });
 
@@ -9872,21 +9868,21 @@ function App() {
                           const pId = row.project_id;
                           const rowKey = row.id ? `${row.id}-${pId}` : `pending-${pId}`;
                           const isExpanded = !!expandedRows[rowKey];
-                          
+
                           const subDetail = projectSubmissions.find(s => s.id === pId) || {};
                           const teamLeader = allUsers.find(u => u.team_name === row.team_name && u.is_team_leader);
                           const leaderName = teamLeader ? teamLeader.full_name : '';
-                          
+
                           const calculatedTotal = getCalculatedTotal(rowKey, row);
                           const totalSum = row.total_mark === '—' && !tempScores[rowKey] ? '—' : calculatedTotal;
                           const isSaved = !tempScores[rowKey] || Object.keys(tempScores[rowKey]).length === 0;
 
                           return (
                             <React.Fragment key={rowKey}>
-                              <tr 
+                              <tr
                                 onClick={() => setExpandedRows(prev => ({ ...prev, [rowKey]: !prev[rowKey] }))}
-                                style={{ 
-                                  borderBottom: '2px solid rgba(0, 31, 63, 0.1)', 
+                                style={{
+                                  borderBottom: '2px solid rgba(0, 31, 63, 0.1)',
                                   cursor: 'pointer',
                                   background: isExpanded ? 'rgba(0, 31, 63, 0.04)' : 'transparent',
                                   transition: 'background 0.2s'
@@ -9914,7 +9910,7 @@ function App() {
                                 <tr style={{ background: '#fff' }}>
                                   <td colSpan="3" style={{ padding: '1.5rem', borderBottom: '3px solid var(--text-navy)', textAlign: 'left' }}>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
-                                      
+
                                       {/* Attendee Submitted Details */}
                                       <div>
                                         <h4 style={{ margin: '0 0 0.4rem 0', fontSize: '0.95rem', color: 'var(--text-navy)', fontFamily: "'Fredoka One', cursive" }}>Project Details</h4>
@@ -9966,86 +9962,86 @@ function App() {
                                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(135px, 1fr))', gap: '1rem', marginBottom: '1.2rem' }}>
                                           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
                                             <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--text-navy)' }}>Innovation (Max 15)</span>
-                                            <input 
-                                              type="number" 
-                                              min="0" 
-                                              max="15" 
+                                            <input
+                                              type="number"
+                                              min="0"
+                                              max="15"
                                               placeholder="0-15"
-                                              value={getInputValue(rowKey, 'innovation_score', row.innovation_score)} 
-                                              onChange={(e) => handleClampedScoreChange(rowKey, 'innovation_score', e.target.value, 15)} 
-                                              style={{ width: '100%', padding: '0.4rem', border: '2.5px solid var(--text-navy)', borderRadius: '8px', textAlign: 'center', fontWeight: 'bold', fontSize: '1rem', background: '#fff' }} 
+                                              value={getInputValue(rowKey, 'innovation_score', row.innovation_score)}
+                                              onChange={(e) => handleClampedScoreChange(rowKey, 'innovation_score', e.target.value, 15)}
+                                              style={{ width: '100%', padding: '0.4rem', border: '2.5px solid var(--text-navy)', borderRadius: '8px', textAlign: 'center', fontWeight: 'bold', fontSize: '1rem', background: '#fff' }}
                                             />
                                           </div>
                                           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
                                             <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--text-navy)' }}>Technical (Max 10)</span>
-                                            <input 
-                                              type="number" 
-                                              min="0" 
-                                              max="10" 
+                                            <input
+                                              type="number"
+                                              min="0"
+                                              max="10"
                                               placeholder="0-10"
-                                              value={getInputValue(rowKey, 'technical_score', row.technical_score)} 
-                                              onChange={(e) => handleClampedScoreChange(rowKey, 'technical_score', e.target.value, 10)} 
-                                              style={{ width: '100%', padding: '0.4rem', border: '2.5px solid var(--text-navy)', borderRadius: '8px', textAlign: 'center', fontWeight: 'bold', fontSize: '1rem', background: '#fff' }} 
+                                              value={getInputValue(rowKey, 'technical_score', row.technical_score)}
+                                              onChange={(e) => handleClampedScoreChange(rowKey, 'technical_score', e.target.value, 10)}
+                                              style={{ width: '100%', padding: '0.4rem', border: '2.5px solid var(--text-navy)', borderRadius: '8px', textAlign: 'center', fontWeight: 'bold', fontSize: '1rem', background: '#fff' }}
                                             />
                                           </div>
                                           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
                                             <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--text-navy)' }}>UX (Max 10)</span>
-                                            <input 
-                                              type="number" 
-                                              min="0" 
-                                              max="10" 
+                                            <input
+                                              type="number"
+                                              min="0"
+                                              max="10"
                                               placeholder="0-10"
-                                              value={getInputValue(rowKey, 'ux_score', row.ux_score)} 
-                                              onChange={(e) => handleClampedScoreChange(rowKey, 'ux_score', e.target.value, 10)} 
-                                              style={{ width: '100%', padding: '0.4rem', border: '2.5px solid var(--text-navy)', borderRadius: '8px', textAlign: 'center', fontWeight: 'bold', fontSize: '1rem', background: '#fff' }} 
+                                              value={getInputValue(rowKey, 'ux_score', row.ux_score)}
+                                              onChange={(e) => handleClampedScoreChange(rowKey, 'ux_score', e.target.value, 10)}
+                                              style={{ width: '100%', padding: '0.4rem', border: '2.5px solid var(--text-navy)', borderRadius: '8px', textAlign: 'center', fontWeight: 'bold', fontSize: '1rem', background: '#fff' }}
                                             />
                                           </div>
                                           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
                                             <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--text-navy)' }}>Impact (Max 10)</span>
-                                            <input 
-                                              type="number" 
-                                              min="0" 
-                                              max="10" 
+                                            <input
+                                              type="number"
+                                              min="0"
+                                              max="10"
                                               placeholder="0-10"
-                                              value={getInputValue(rowKey, 'impact_score', row.impact_score)} 
-                                              onChange={(e) => handleClampedScoreChange(rowKey, 'impact_score', e.target.value, 10)} 
-                                              style={{ width: '100%', padding: '0.4rem', border: '2.5px solid var(--text-navy)', borderRadius: '8px', textAlign: 'center', fontWeight: 'bold', fontSize: '1rem', background: '#fff' }} 
+                                              value={getInputValue(rowKey, 'impact_score', row.impact_score)}
+                                              onChange={(e) => handleClampedScoreChange(rowKey, 'impact_score', e.target.value, 10)}
+                                              style={{ width: '100%', padding: '0.4rem', border: '2.5px solid var(--text-navy)', borderRadius: '8px', textAlign: 'center', fontWeight: 'bold', fontSize: '1rem', background: '#fff' }}
                                             />
                                           </div>
                                           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
                                             <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--text-navy)' }}>Pitch (Max 10)</span>
-                                            <input 
-                                              type="number" 
-                                              min="0" 
-                                              max="10" 
+                                            <input
+                                              type="number"
+                                              min="0"
+                                              max="10"
                                               placeholder="0-10"
-                                              value={getInputValue(rowKey, 'presentation_score', row.presentation_score)} 
-                                              onChange={(e) => handleClampedScoreChange(rowKey, 'presentation_score', e.target.value, 10)} 
-                                              style={{ width: '100%', padding: '0.4rem', border: '2.5px solid var(--text-navy)', borderRadius: '8px', textAlign: 'center', fontWeight: 'bold', fontSize: '1rem', background: '#fff' }} 
+                                              value={getInputValue(rowKey, 'presentation_score', row.presentation_score)}
+                                              onChange={(e) => handleClampedScoreChange(rowKey, 'presentation_score', e.target.value, 10)}
+                                              style={{ width: '100%', padding: '0.4rem', border: '2.5px solid var(--text-navy)', borderRadius: '8px', textAlign: 'center', fontWeight: 'bold', fontSize: '1rem', background: '#fff' }}
                                             />
                                           </div>
                                           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
                                             <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--text-navy)' }}>Feasible (Max 10)</span>
-                                            <input 
-                                              type="number" 
-                                              min="0" 
-                                              max="10" 
+                                            <input
+                                              type="number"
+                                              min="0"
+                                              max="10"
                                               placeholder="0-10"
-                                              value={getInputValue(rowKey, 'feasibility_score', row.feasibility_score)} 
-                                              onChange={(e) => handleClampedScoreChange(rowKey, 'feasibility_score', e.target.value, 10)} 
-                                              style={{ width: '100%', padding: '0.4rem', border: '2.5px solid var(--text-navy)', borderRadius: '8px', textAlign: 'center', fontWeight: 'bold', fontSize: '1rem', background: '#fff' }} 
+                                              value={getInputValue(rowKey, 'feasibility_score', row.feasibility_score)}
+                                              onChange={(e) => handleClampedScoreChange(rowKey, 'feasibility_score', e.target.value, 10)}
+                                              style={{ width: '100%', padding: '0.4rem', border: '2.5px solid var(--text-navy)', borderRadius: '8px', textAlign: 'center', fontWeight: 'bold', fontSize: '1rem', background: '#fff' }}
                                             />
                                           </div>
                                         </div>
 
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginBottom: '1.2rem' }}>
                                           <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--text-navy)' }}>Special Remarks</span>
-                                          <input 
-                                            type="text" 
-                                            placeholder="Add special remarks..." 
-                                            value={getRemarksValue(rowKey, row.remarks)} 
-                                            onChange={(e) => handleUnifiedScoreChange(rowKey, 'remarks', e.target.value)} 
-                                            style={{ width: '100%', padding: '0.6rem 0.8rem', border: '2.5px solid var(--text-navy)', borderRadius: '8px', fontSize: '0.9rem', background: '#fff' }} 
+                                          <input
+                                            type="text"
+                                            placeholder="Add special remarks..."
+                                            value={getRemarksValue(rowKey, row.remarks)}
+                                            onChange={(e) => handleUnifiedScoreChange(rowKey, 'remarks', e.target.value)}
+                                            style={{ width: '100%', padding: '0.6rem 0.8rem', border: '2.5px solid var(--text-navy)', borderRadius: '8px', fontSize: '0.9rem', background: '#fff' }}
                                           />
                                         </div>
 
@@ -10103,7 +10099,9 @@ function App() {
                 if (projectSubmissions.length === 0) {
                   return (
                     <div style={{ textAlign: 'center', padding: '4rem', background: 'var(--bg-cream)', border: '4px solid var(--text-navy)', borderRadius: '24px', boxShadow: '8px 8px 0px var(--text-navy)' }}>
-                      <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>🚀</div>
+                      <div style={{ marginBottom: '1rem' }}>
+                        <img src="/svg/emoji/rocket.svg" alt="Rocket" style={{ width: '64px', height: '64px' }} />
+                      </div>
                       <h3 style={{ fontFamily: 'Fredoka One', color: 'var(--text-navy)', fontSize: '1.5rem', marginBottom: '0.5rem' }}>No Submissions Yet</h3>
                       <p style={{ fontFamily: 'Outfit', color: 'var(--text-muted)' }}>Check back once hacking finishes and teams submit their projects!</p>
                     </div>
@@ -11671,7 +11669,7 @@ function App() {
                   transition: 'all 0.2s'
                 }}
               />
-              
+
               <div style={{
                 display: 'flex',
                 justifyContent: 'space-between',
@@ -11683,7 +11681,7 @@ function App() {
               }}>
                 <span style={{ color: 'var(--text-navy)' }}>
                   Word Count:{' '}
-                  <span style={{ 
+                  <span style={{
                     color: getWordCount(feedbackText) >= 100 ? '#10b981' : '#ef4444',
                     fontSize: '1.05rem'
                   }}>
@@ -11691,7 +11689,7 @@ function App() {
                   </span>{' '}
                   / 100
                 </span>
-                
+
                 {getWordCount(feedbackText) >= 100 ? (
                   <span style={{ color: '#10b981', display: 'flex', alignItems: 'center', gap: '5px' }}>
                     <span style={{ fontSize: '1.1rem' }}>✓</span> Minimum word count reached!
