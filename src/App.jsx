@@ -7733,7 +7733,7 @@ function App() {
                                 {isExpanded && sub && (
                                   <tr className="submission-details-row">
                                     <td colSpan="5" style={{ background: 'rgba(255, 255, 255, 0.03)', padding: '1.5rem', borderLeft: '4px solid var(--pink-primary)' }}>
-                                      <div style={{ color: '#fff' }}>
+                                      <div style={{ color: '#000000' }}>
                                         <h4 style={{ color: 'var(--yellow-star)', fontFamily: "'Fredoka One', cursive", marginBottom: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                           🚀 {sub.project_name} Details
                                         </h4>
@@ -7794,7 +7794,7 @@ function App() {
                                             {sub.audit_anomalies && sub.audit_anomalies.length > 0 && (
                                               <div style={{ marginBottom: '0.8rem' }}>
                                                 <span style={{ fontSize: '0.72rem', color: '#000000', fontWeight: '600', display: 'block', marginBottom: '0.2rem' }}>FLAGGED ANOMALIES</span>
-                                                <ul style={{ margin: '0.2rem 0 0 0', paddingLeft: '1.2rem', color: '#c53030', fontSize: '0.82rem', lineHeight: '1.4' }}>
+                                                <ul style={{ margin: '0.2rem 0 0 0', paddingLeft: '1.2rem', color: '#000000', fontSize: '0.82rem', lineHeight: '1.4' }}>
                                                   {sub.audit_anomalies.map((anom, aIdx) => (
                                                     <li key={aIdx}>{anom}</li>
                                                   ))}
@@ -10165,7 +10165,7 @@ function App() {
                             </div>
                           )}
 
-                          <p style={{ fontFamily: 'Outfit', color: 'var(--text-navy)', fontSize: '0.92rem', lineHeight: '1.5', flexGrow: 1, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebKitLineClamp: 4, WebKitBoxOrient: 'vertical', textAlign: 'left', margin: '0.5rem 0' }}>
+                          <p style={{ fontFamily: 'Outfit', color: '#000000', fontSize: '0.92rem', lineHeight: '1.5', flexGrow: 1, textAlign: 'left', margin: '0.5rem 0' }}>
                             {submission.description}
                           </p>
 
