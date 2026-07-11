@@ -847,6 +847,7 @@ function App() {
   const [scanResult, setScanResult] = useState(null);
   const [expandedProject, setExpandedProject] = useState(null);
   const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
+  const [isIdeaModalOpen, setIsIdeaModalOpen] = useState(false);
   const [showroomSearchQuery, setShowroomSearchQuery] = useState('');
   const [settings, setSettings] = useState({
     registration_open: 'true',
@@ -1179,7 +1180,9 @@ function App() {
   const [selectedMentor, setSelectedMentor] = useState(null);
   const [mentorRequestModal, setMentorRequestModal] = useState(null);
   const [projectSubmissions, setProjectSubmissions] = useState([]);
+  const [ideaSubmissions, setIdeaSubmissions] = useState([]);
   const [mySubmission, setMySubmission] = useState(null);
+  const [myIdeaSubmission, setMyIdeaSubmission] = useState(null);
   const [selectedGalleryImage, setSelectedGalleryImage] = useState(null);
   const [teamMembers, setTeamMembers] = useState([]);
   const [activeScheduleDay, setActiveScheduleDay] = useState(() => new Date() >= new Date('2026-07-11T23:00:00') ? 2 : 1);
@@ -1496,7 +1499,10 @@ function App() {
     fetchAllMentors();
     fetchBlogPosts();
     fetchSubmissions();
-    if (isLoggedIn && user.role === 'attendee') fetchMySubmission();
+    if (isLoggedIn && user.role === 'attendee') {
+      fetchMySubmission();
+      fetchMyIdeaSubmission();
+    }
 
     // 4. Realtime listener for venues, settings, and mentors
     const venueChannel = supabase.channel('db-updates');
@@ -1518,6 +1524,11 @@ function App() {
       if (isLoggedIn && user.role === 'attendee') fetchMySubmission();
     });
 
+    venueChannel.on('postgres_changes', { event: '*', schema: 'public', table: 'idea_submissions' }, () => {
+      fetchSubmissions();
+      if (isLoggedIn && user.role === 'attendee') fetchMyIdeaSubmission();
+    });
+
     venueChannel.subscribe();
 
     return () => {
@@ -1529,6 +1540,7 @@ function App() {
   useEffect(() => {
     if (!isLoggedIn || user.role !== 'attendee' || !session?.user?.id) return;
     fetchMySubmission();
+    fetchMyIdeaSubmission();
   }, [isLoggedIn, user.role, user.teamName, session?.user?.id]);
 
   useEffect(() => {
@@ -3335,6 +3347,10 @@ function App() {
   const fetchSubmissions = async () => {
     const { data } = await supabase.from('project_submissions').select('*');
     if (data) setProjectSubmissions(data);
+
+    const { data: ideaData } = await supabase.from('idea_submissions').select('*');
+    if (ideaData) setIdeaSubmissions(ideaData);
+
     if (session?.user?.id) {
       if (user.role === 'judge') {
         await fetchJudgeScores();
@@ -3377,6 +3393,27 @@ function App() {
     } else {
       setMySubmission(null);
       setSubmitterName('');
+    }
+  };
+
+  const fetchMyIdeaSubmission = async () => {
+    if (!session?.user?.id) return;
+
+    let query = supabase
+      .from('idea_submissions')
+      .select('*');
+
+    if (user.teamName) {
+      query = query.or(`submitted_by.eq.${session.user.id},team_name.eq.${user.teamName}`);
+    } else {
+      query = query.eq('submitted_by', session.user.id);
+    }
+
+    const { data } = await query.maybeSingle();
+    if (data) {
+      setMyIdeaSubmission(data);
+    } else {
+      setMyIdeaSubmission(null);
     }
   };
 
@@ -3441,6 +3478,59 @@ function App() {
       alert('Project submitted successfully! Good luck!');
       setIsProjectModalOpen(false);
       fetchMySubmission();
+    }
+  };
+
+  const handleIdeaSubmit = async (e) => {
+    e.preventDefault();
+    if (settings.idea_submission_open !== 'true') {
+      alert('Idea submissions are currently closed by the admin.');
+      return;
+    }
+
+    if (user.role === 'attendee' && user.teamName && !user.isTeamLeader) {
+      alert('Only the Team Leader can submit the idea for your team!');
+      return;
+    }
+
+    if (user.role === 'attendee' && !user.isApproved) {
+      alert('Only attendees marked as "Present" by the registration desk can submit ideas!');
+      return;
+    }
+
+    const formData = new FormData(e.target);
+
+    if (formData.get('description').toString().split(' ').length < 100) {
+      alert('Please follow the minimum word count for description.');
+      return;
+    }
+
+    const teamKey = user.teamName || `Individual-${session.user.id}`;
+    const { data: existingSub } = await supabase
+      .from('idea_submissions')
+      .select('id')
+      .eq('team_name', teamKey)
+      .maybeSingle();
+
+    if (existingSub) {
+      alert('A submission has already been made for your team!');
+      fetchMyIdeaSubmission();
+      return;
+    }
+
+    const submissionData = {
+      team_name: user.teamName || `Individual-${session.user.id}`,
+      idea_title: formData.get('ideaTitle'),
+      description: formData.get('description'),
+      submitted_by: session.user.id
+    };
+
+    const { error } = await supabase.from('idea_submissions').insert([submissionData]);
+    if (error) alert(error.message);
+    else {
+      alert('Idea submitted successfully! Good luck!');
+      setIsIdeaModalOpen(false);
+      fetchMyIdeaSubmission();
     }
   };
 
@@ -6472,6 +6562,15 @@ function App() {
                           {settings.project_submission_open === 'true' ? 'STOP SUBMISSIONS' : 'START SUBMISSIONS'}
                         </button>
                       </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem' }}>
+                        <span>Start / Stop Idea Submission</span>
+                        <button
+                          className={`btn-small ${settings.idea_submission_open === 'true' ? 'accept' : 'decline'}`}
+                          onClick={() => updateSetting('idea_submission_open', settings.idea_submission_open === 'true' ? 'false' : 'true')}
+                        >
+                          {settings.idea_submission_open === 'true' ? 'STOP IDEA SUBMISSION' : 'START IDEA SUBMISSION'}
+                        </button>
+                      </div>
                     </div>
                   </div>
                   <div className="admin-card">
@@ -7881,6 +7980,38 @@ function App() {
                     return renderPagination(projectSubmissionsPage, teamsList.length, 5, setProjectSubmissionsPage);
                   })()}
                 </div>
+
+                {/* IDEA SUBMISSIONS OVERVIEW */}
+                <div className="admin-panel" id="idea-submissions-section" style={{ marginBottom: '4rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
+                    <h2 className="text-3d" style={{ fontSize: '2rem', margin: 0 }}>Idea Submissions</h2>
+                  </div>
+
+                  <div className="table-responsive">
+                    <table className="admin-table">
+                      <thead>
+                        <tr>
+                          <th>TEAM / INDIVIDUAL</th>
+                          <th>IDEA TITLE</th>
+                          <th>DESCRIPTION</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {ideaSubmissions.length === 0 ? (
+                          <tr><td colSpan="3" style={{ textAlign: 'center', padding: '2rem' }}>No ideas submitted yet.</td></tr>
+                        ) : (
+                          ideaSubmissions.map((sub, idx) => (
+                            <tr key={sub.id || idx}>
+                              <td><strong>{sub.team_name}</strong></td>
+                              <td>{sub.idea_title}</td>
+                              <td style={{ whiteSpace: 'pre-wrap', minWidth: '300px' }}>{sub.description}</td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -8844,6 +8975,25 @@ function App() {
                       style={{ minWidth: '200px', cursor: 'pointer', height: '48px', boxSizing: 'border-box', margin: 0 }}
                     >
                       {mySubmission ? "VIEW SUBMISSION DETAILS" : "SUBMIT PROJECT"}
+                    </button>
+                  </div>
+                </div>
+
+                {/* IDEA SUBMISSION SECTION */}
+                <div className="profile-card" style={{ marginTop: '2rem', padding: '2rem', background: 'rgba(255,255,255,0.05)', borderRadius: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', textAlign: 'center' }}>
+                  <h3 className="text-3d" style={{ fontSize: '1.5rem', margin: 0 }}>Idea Submission</h3>
+                  <p style={{ margin: 0, opacity: 0.8, fontSize: '0.95rem', color: '#fff' }}>
+                    {myIdeaSubmission
+                      ? `Your idea "${myIdeaSubmission.idea_title}" is successfully submitted!`
+                      : "Submit your initial idea for the hackathon."}
+                  </p>
+                  <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', width: '100%', marginTop: '0.5rem', flexWrap: 'wrap' }}>
+                    <button
+                      onClick={() => setIsIdeaModalOpen(true)}
+                      className="join-btn"
+                      style={{ minWidth: '200px', cursor: 'pointer', height: '48px', boxSizing: 'border-box', margin: 0 }}
+                    >
+                      {myIdeaSubmission ? "VIEW IDEA DETAILS" : "SUBMIT IDEA"}
                     </button>
                   </div>
                 </div>
@@ -10884,6 +11034,83 @@ function App() {
                       disabled
                     >
                       SUBMISSION CLOSED
+                    </button>
+                  )}
+                </form>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isIdeaModalOpen && (
+        <div className="modal-overlay" onClick={() => setIsIdeaModalOpen(false)}>
+          <div className="modal-content about-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '650px', background: 'var(--bg-cream)', border: '4px solid var(--text-navy)', padding: '2.5rem', borderRadius: '24px', boxShadow: '10px 10px 0px var(--text-navy)', overflowY: 'auto', maxHeight: '90vh', position: 'relative' }}>
+            <button className="modal-close" onClick={() => setIsIdeaModalOpen(false)} style={{ color: 'var(--text-navy)', fontSize: '2rem', right: '1.5rem', top: '1rem', background: 'none', border: 'none', cursor: 'pointer' }}>×</button>
+
+            <div style={{ width: '100%' }}>
+              <h2 className="text-3d" style={{ fontSize: '2.2rem', marginBottom: '1.5rem', textAlign: 'center' }}>Idea Submission</h2>
+
+              {myIdeaSubmission ? (
+                <div className="submission-success" style={{ textAlign: 'center' }}>
+                  <div style={{ marginBottom: '1rem', fontSize: '3rem' }}>💡</div>
+                  <h3 style={{ fontFamily: 'Fredoka One', color: 'var(--text-navy)', fontSize: '1.6rem', marginBottom: '0.5rem' }}>Idea Submitted!</h3>
+                  <p style={{ fontFamily: 'Outfit', color: 'var(--text-navy)', fontSize: '1.05rem', margin: '0.5rem 0' }}>Your idea <strong>"{myIdeaSubmission.idea_title}"</strong> has been received.</p>
+                  
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1rem', marginTop: '2rem', textAlign: 'left' }}>
+                    <div className="input-group">
+                      <label style={{ color: 'var(--text-navy)', fontWeight: 'bold', fontSize: '0.9rem', marginBottom: '0.3rem', display: 'block' }}>Idea Details</label>
+                      <div style={{ padding: '1rem', background: 'rgba(0,0,0,0.03)', borderRadius: '8px', border: '1px solid rgba(0,0,0,0.1)', whiteSpace: 'pre-wrap' }}>
+                        {myIdeaSubmission.description}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <form className="auth-form" onSubmit={handleIdeaSubmit} style={{ marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
+                  
+                  <div className="input-group">
+                    <label style={{ color: 'var(--text-navy)', fontWeight: 'bold', fontSize: '0.9rem', marginBottom: '0.3rem', display: 'block' }}>Team/Group Name</label>
+                    <input name="teamName" type="text" value={user.teamName || `Individual-${session?.user?.id}`} disabled style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: '2px solid var(--text-navy)', background: '#e2e8f0', color: '#4a5568', fontWeight: 'bold' }} />
+                  </div>
+
+                  <div className="input-group">
+                    <label style={{ color: 'var(--text-navy)', fontWeight: 'bold', fontSize: '0.9rem', marginBottom: '0.3rem', display: 'block' }}>Idea Title</label>
+                    <input name="ideaTitle" type="text" placeholder="Title of your idea" required style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: '2px solid var(--text-navy)' }} />
+                  </div>
+
+                  <div className="input-group">
+                    <label style={{ color: 'var(--text-navy)', fontWeight: 'bold', fontSize: '0.9rem', marginBottom: '0.3rem', display: 'block' }}>Idea Description (min 100 words)</label>
+                    <textarea name="description" placeholder="Describe the problem you're solving and your proposed solution..." required style={{ width: '100%', minHeight: '150px', padding: '0.8rem', borderRadius: '8px', border: '2px solid var(--text-navy)', resize: 'vertical' }}></textarea>
+                  </div>
+
+                  {settings.idea_submission_open === 'true' ? (
+                    <button
+                      type="submit"
+                      className="join-btn"
+                      style={{
+                        width: '100%',
+                        marginTop: '1rem',
+                        cursor: 'pointer',
+                        padding: '1rem'
+                      }}
+                    >
+                      SUBMIT IDEA
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      className="join-btn disabled"
+                      style={{
+                        width: '100%',
+                        marginTop: '1rem',
+                        cursor: 'not-allowed',
+                        opacity: 0.6,
+                        padding: '1rem'
+                      }}
+                      disabled
+                    >
+                      IDEA SUBMISSION CLOSED
                     </button>
                   )}
                 </form>
